@@ -1,0 +1,55 @@
+
+<html>
+  <head>
+    <title>JCMTHGOA</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style type="text/css">
+      #mainDiv
+      {
+        position: relative;
+        margin:0;
+        padding:0;
+        width: 1600px;
+        height: 900px;
+        left: 50%;
+        top: 2px;
+        margin-left: -800px;
+        background-color: #F8F8F8;
+        
+        overflow: hidden;
+        #border-style: solid;
+        #border-radius: 18px;
+        #border-color: #6B89D8
+      }
+      #loadingdiv
+      {
+        position: absolute;
+        background-color: #F8F8F8;
+        width: 400px;
+        height: 80px;
+        left: 620px;
+        top: 400px;
+        font-size: 50px;
+        font-family: serif;
+        color: #CCCCCC;
+      }
+      #canvas
+      {
+        visibility: hidden;
+      }
+    </style>
+    <script type="text/javascript" src="Source/jquery.min.js"></script>
+    <script type="text/javascript" src="Source/map.js"></script>
+    <script type="text/javascript" src="Source/horse.js"></script>
+    <script type="text/javascript" src="Source/dude.js"></script>
+    <script type="text/javascript" src="Source/game.js"></script>
+  </head>
+  <body bgcolor = #D9D9D9 onload="initialize();">
+    <div id="mainDiv">
+      <div id="loadingdiv">
+        Loading Rad Game
+      </div>
+      <canvas id="canvas"></canvas>
+    </div>
+  </body>
+</html>
