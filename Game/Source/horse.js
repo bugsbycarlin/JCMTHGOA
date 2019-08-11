@@ -3,7 +3,7 @@ var horse_colors = ["Brown", "DarkBrown", "Yellow", "Black"];
 
 var horse_images = {};
 
-for (var c = 0; c <= horse_colors.length; c++) {
+for (var c = 0; c < horse_colors.length; c++) {
   var color = horse_colors[c];
   horse_images[color] = {};
 
