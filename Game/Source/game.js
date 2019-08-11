@@ -13,8 +13,6 @@ var num_horses = 8;
 
 var cussin_sound_available = true;
 
-var fadeAlpha = 0;
-
 var fence_images = [];
 fence_images["horizontal"] = new Image();
 fence_images["horizontal"].src = "Art/Fence/horizontal_fence.png";
@@ -24,11 +22,13 @@ fence_images["solitary"] = new Image();
 fence_images["solitary"].src = "Art/Fence/solitary_fence.png";
 fence_images["corner"] = new Image();
 fence_images["corner"].src = "Art/Fence/corner_fence.png";
+fence_images["extension"] = new Image();
+fence_images["extension"].src = "Art/Fence/extension_fence.png";
 
 title_horse = [];
 for (var i = 1; i <= 21; i++) {
   title_horse[i] = new Image();
-  title_horse[i].src = "Art/FadedTitleTrot/rear_trot_" + i + ".png";
+  title_horse[i].src = "Art/TitleTrot/rear_trot_" + i + ".png";
 }
 title_horse_1_frame = 1;
 title_horse_2_frame = 1;
@@ -41,6 +41,9 @@ background_image.src = "Art/Background/farm.png";
 
 var title_image = new Image();
 title_image.src = "Art/Display/title_screen.png";
+
+var martha_image = new Image();
+martha_image.src = "Art/Display/martha.png";
 
 var last_pen_image = new Image();
 last_pen_image.src = "Art/Display/last_pen.png";
@@ -246,20 +249,13 @@ function drawNumber(number, x, y) {
 function renderTitle(context) {
   //context.drawImage(title_image, 0, 0);
 
-  fadeAlpha += 0.02;
-  if (fadeAlpha > 1) fadeAlpha = 1;
-  fadeAlpha = 1;
-
-  context.globalAlpha = 1.0;
   context.fillStyle = "#FFFFFF";
   context.fillRect(0,0,canvas.width,canvas.height);
 
   context.drawImage(background_image, 0, 0);
 
-  //context.globalAlpha = 0.7 * fadeAlpha;
   context.drawImage(title_horse[Math.floor(title_horse_1_frame)], 140, 100);
   context.drawImage(title_horse[Math.floor(title_horse_2_frame)], 1210, 100);
-  context.globalAlpha = 1.0 * fadeAlpha;
 
   context.drawImage(title_image, 0, 0);
 
@@ -285,6 +281,8 @@ function renderGame(context) {
     poops[i].render();
   }
 
+  context.drawImage(martha_image, 570, 30);
+
   var tiles = map.tiles;
   for (var h = 0; h < tiles.length; h++) {
     for (var w = 0; w < tiles[0].length; w++) {
@@ -292,6 +290,11 @@ function renderGame(context) {
       draw_y = map.y + map.y_spacing * h;
 
       if (tiles[h][w] === "x") {
+        //if(h == 0 || h == tiles.length - 1) {
+        //context.drawImage(fence_images["extension"], draw_x, draw_y);
+        //draw_y -= 5;
+        //}
+
         if (w < tiles[0].length - 1 && h < tiles.length - 1 && tiles[h][w+1] === "x" && map.tiles[h+1][w] === "x") {
           context.drawImage(fence_images["corner"], draw_x, draw_y);
         } else if (w < tiles[0].length - 1 && tiles[h][w+1] === "x") {
@@ -301,6 +304,9 @@ function renderGame(context) {
         } else {
           context.drawImage(fence_images["solitary"], draw_x, draw_y);
         }
+
+        //if (h == 0 || h == tiles.length - 1) draw_y += 40;
+        //draw_y += 5;
       }
 
       for (var i = 0; i < num_horses; i++) {
