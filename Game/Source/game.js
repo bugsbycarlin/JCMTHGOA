@@ -1,4 +1,61 @@
 
+var context;
+
+var mode = "title";
+
+var seconds_of_this_crap = 0;
+
+var tries_left = 3;
+
+var pens_to_go = 5;
+
+var num_horses = 8;
+
+var cussin_sound_available = true;
+
+var fence_images = [];
+fence_images["horizontal"] = new Image();
+fence_images["horizontal"].src = "Art/Fence/horizontal_fence.png";
+fence_images["vertical"] = new Image();
+fence_images["vertical"].src = "Art/Fence/vertical_fence.png";
+fence_images["solitary"] = new Image();
+fence_images["solitary"].src = "Art/Fence/solitary_fence.png";
+fence_images["corner"] = new Image();
+fence_images["corner"].src = "Art/Fence/corner_fence.png";
+
+var game_over_image = new Image();
+game_over_image.src = "Art/Display/game_over.png";
+
+var background_image = new Image();
+background_image.src = "Art/Background/farm.png";
+
+var title_image = new Image();
+title_image.src = "Art/Display/title.png";
+
+var last_pen_image = new Image();
+last_pen_image.src = "Art/Display/last_pen.png";
+
+var pens_to_go_image = new Image();
+pens_to_go_image.src = "Art/Display/pens_to_go.png";
+
+var seconds_of_this_crap_image = new Image();
+seconds_of_this_crap_image.src = "Art/Display/seconds_of_this_crap.png";
+
+var tries_left_image = new Image();
+tries_left_image.src = "Art/Display/tries_left.png";
+
+var number_text = [];
+for (var i = 0; i < 10; i++) {
+  number_text[i] = new Image();
+  number_text[i].src = "Art/Display/" + i + ".png";
+}
+
+
+var map;
+var horses = [];
+var dude;
+var poops = [];
+
 function initialize()
 {
   $('img').bind('dragstart', function(event) { event.preventDefault(); });
@@ -7,7 +64,7 @@ function initialize()
 
   //document.addEventListener("mouseup", click_event, false);
   //document.addEventListener("touchstart", touch_event, false);
-  document.addEventListener("keydown", key_event, false);
+  document.addEventListener("keydown", handleKeys, false);
   
   canvas.width = 1600;
   canvas.height = 900;
@@ -19,57 +76,175 @@ function initialize()
   var loadingdiv = document.getElementById('loadingdiv');
   loadingdiv.style.visibility = 'hidden';
 
-  setInterval(update,42);
+  setInterval(update,36);
+  setInterval(updateDude,24);
+
+  context = canvas.getContext('2d');
 
   map = new Map();
 
-  var context = canvas.getContext('2d');
-  for (var i = 0; i < 4; i++) {
-    horses[i] = new Horse(canvas, 650 + 200 * Math.random(), 400 + 150 * Math.random());
-    if (i % 2 == 1) horses[i].waypoint = 22;
+  // Game over testing
+  dude = new Dude(canvas, map, waypoints[36].x - 500, waypoints[36].y);
+  for (var i = 0; i < num_horses; i++) {
+    horses[i] = new Horse(canvas, dude, waypoints[37].x + 2, waypoints[37].y + 5);
+    horses[i].waypoint = 27;
   }
 
-  dude = new Dude(canvas, map, Waypoints[35].x, Waypoints[35].y);
+  // Regular
+  // dude = new Dude(canvas, map, waypoints[36].x, waypoints[36].y);
+  // for (var i = 0; i < num_horses; i++) {
+  //   horses[i] = new Horse(canvas, dude, 650 + 200 * Math.random(), 500 + 50 * Math.random());
+  //   if (i % 2 == 1) horses[i].waypoint = 22;
+  // }
 }
 
-var fenceImages = [];
-fenceImages["horizontal"] = new Image();
-fenceImages["horizontal"].src = "Art/Fence/horizontal_fence.png";
-fenceImages["vertical"] = new Image();
-fenceImages["vertical"].src = "Art/Fence/vertical_fence.png";
-fenceImages["solitary"] = new Image();
-fenceImages["solitary"].src = "Art/Fence/solitary_fence.png";
-fenceImages["corner"] = new Image();
-fenceImages["corner"].src = "Art/Fence/corner_fence.png";
+function cueTheMusic() {
+  var volume = 0.4;
+  $("#song_1").prop("volume",volume);
+  $("#song_2").prop("volume",volume);
+  $("#song_3").prop("volume",volume);
+  $("#song_4").prop("volume", volume);
+  
+  $("#song_1").bind("ended", function(){
+    $("#song_2").trigger("play");
+  });
+  $("#song_2").bind("ended", function(){
+    $("#song_3").trigger("play");
+  });
+  $("#song_3").bind("ended", function(){
+    $("#song_4").trigger("play");
+  });
+  $("#song_4").bind("ended", function(){
+    $("#song_1").trigger("play");
+  });
 
-var floorImage = new Image();
-floorImage.src = "Art/Floor/scratch_floor.png";
+  // Start with one of the first three songs.
+  var first_song_string = "#song_" + (Math.floor(Math.random() * 3) + 1).toString();
+  $(first_song_string).trigger("play");
 
-var map;
-var horses = [];
-var dude;
+  // $("#cussin").prop("volume",0.8);
+  // $("#cussin").trigger("play");
+  // $("#cussin").bind("ended", function(){
+  //   $("#cussin").trigger("play");
+  // });
+}
 
 function update() {
+  if (mode === "title") {
+    //pass
+  } else if (mode == "game") {
+    if (dude.state != "failed") {
+      seconds_of_this_crap += 36.0/1000.0;
+    }
 
-  for (var i = 0; i < 4; i++) {
-    horses[i].update();
+    updateGame();
   }
-
-  dude.update();
 
   render();
 }
 
-function render()
-{
+function updateGame() {
+
+  for (var i = 0; i < num_horses; i++) {
+    horses[i].update();
+
+    horses[i].maybePoop(poops);
+  }
+
+  for (var i = 0; i < poops.length; i++) {
+    poops[i].update();
+  }
+
+  //dude.update();
+}
+
+function updateDude() {
+  dude.update();
+
+  for (var i = 0; i < poops.length; i++) {
+    if (poops[i].status == "fresh" && dude.status != "crap" && distance(dude.x_pos, dude.y_pos, poops[i].x, poops[i].y) < 8) {
+      dude.stepInCrap();
+      poops[i].status = "destroyed";
+      var crap_sound_string = "#crap_" + (Math.floor(Math.random() * 10) + 1).toString();
+      if (cussin_sound_available) {
+        cussin_sound_available = false;
+        $(crap_sound_string).trigger("play");
+        $(crap_sound_string).bind("ended", function(){
+          cussin_sound_available = true;
+        });
+      }
+    }
+  }
+}
+
+function debugRenderWaypoints() {
+  console.log("in here");
+  for (var i = 0; i <= 43; i++) {
+    var w1 = waypoints[i];
+    for (var j = 0; j < w1.links.length; j++) {
+      var w2 = waypoints[w1.links[j]];
+      //console.log(w1.x, w1.y, w2.x, w2.y);
+      if (i > w1.links[j]) {
+        context.lineWidth = 4;
+      } else {
+        context.lineWidth = 0;
+      }
+      context.beginPath();
+      context.moveTo(w1.x, w1.y);
+      context.lineTo(w2.x, w2.y);
+      context.stroke();
+    }
+  }
+
+  for (var i = 0; i < 44; i++) {
+    drawNumber(i, waypoints[i].x, waypoints[i].y);
+  }
+}
+
+
+function render() {
   // clear the screen
-  var context = canvas.getContext('2d');
   context.fillStyle = "#907441";
   context.fillRect(0,0,canvas.width,canvas.height);
 
-  context.drawImage(floorImage, 45, 0);
+  if (mode === "title") {
+    renderTitle(context);
+  } else {
+    renderGame(context);
+  }
+}
 
-  //debugRenderWaypoints(context);
+function drawNumber(number, x, y) {
+  if (number > 0) {
+    var display_number = number;
+    var digits = Math.floor(Math.log(number) / Math.log(10));
+    for (var i = digits; i >= 0; i--) {
+      var current_digit = Math.floor(display_number / (Math.pow(10, i)));
+      display_number -= Math.pow(10, i) * current_digit;
+      context.drawImage(number_text[current_digit], x + 26 * (digits - i), y); 
+    }
+    return digits;
+  } else if (number == 0) {
+    context.drawImage(number_text[0], x, y);
+    return 0;
+  }
+}
+
+function renderTitle(context) {
+  context.drawImage(title_image, 0, 0);
+}
+
+function renderGame(context) {
+
+  context.drawImage(background_image, 0, 0);
+
+  //debugRenderWaypoints();
+
+  dude.renderEffect();
+
+  for (var i = 0; i < poops.length; i++) {
+    poops[i].render();
+  }
 
   var tiles = map.tiles;
   for (var h = 0; h < tiles.length; h++) {
@@ -79,43 +254,81 @@ function render()
 
       if (tiles[h][w] === "x") {
         if (w < tiles[0].length - 1 && h < tiles.length - 1 && tiles[h][w+1] === "x" && map.tiles[h+1][w] === "x") {
-          context.drawImage(fenceImages["corner"], draw_x, draw_y);
+          context.drawImage(fence_images["corner"], draw_x, draw_y);
         } else if (w < tiles[0].length - 1 && tiles[h][w+1] === "x") {
-          context.drawImage(fenceImages["horizontal"], draw_x, draw_y);
+          context.drawImage(fence_images["horizontal"], draw_x, draw_y);
         } else if (h < tiles.length - 1 && tiles[h+1][w] === "x") {
-          context.drawImage(fenceImages["vertical"], draw_x, draw_y);
+          context.drawImage(fence_images["vertical"], draw_x, draw_y);
         } else {
-          context.drawImage(fenceImages["solitary"], draw_x, draw_y);
+          context.drawImage(fence_images["solitary"], draw_x, draw_y);
         }
       }
 
-      for (var i = 0; i < 4; i++) {
-        if (draw_y - map.y_spacing < horses[i].getZIndex() && draw_y > horses[i].getZIndex()) {
+      for (var i = 0; i < num_horses; i++) {
+        if (draw_y + 25 <= horses[i].y_pos && draw_y + 25 + map.y_spacing > horses[i].y_pos) {
           horses[i].render();
         }
       }
 
-      if (draw_y - map.y_spacing < dude.getZIndex() && draw_y > dude.getZIndex()) {
+      if (draw_y + 25 <= dude.y_pos && draw_y + 25 + map.y_spacing > dude.y_pos) {
         dude.render();
       }
     }
   }
-}
 
-function renderHorse() {
-  var context = canvas.getContext('2d');
-  context.save();
-  context.translate(x_pos, y_pos);
-  if (velocity < 0) {
-    context.scale(-1, 1);
+  if (dude.state == "failed") {
+    context.drawImage(game_over_image, -35, 155);
   }
-  context.drawImage(trotImages[current_frame], -center_x, -center_y);
-  context.restore();
+
+  // var display_seconds = seconds_of_this_crap;
+  // var digits = Math.floor(Math.log(seconds_of_this_crap) / Math.log(10));
+  // for (var i = digits; i >= 0; i--) {
+  //   var current_digit = Math.floor(display_seconds / (Math.pow(10, i)));
+  //   display_seconds -= Math.pow(10, i) * current_digit;
+  //   context.drawImage(number_text[current_digit], 10 + 26 * (digits - i), 8); 
+  // }
+  var digits = drawNumber(Math.floor(seconds_of_this_crap), 10, 8);
+
+  context.drawImage(seconds_of_this_crap_image, 26 * digits + 50, 8);
+
+  drawNumber(tries_left, 710, 8);
+  context.drawImage(tries_left_image, 750, 8);
+
+  if(pens_to_go > 1) {
+    drawNumber(pens_to_go, 1305, 8);
+    context.drawImage(pens_to_go_image, 1350, 8);
+  } else {
+    context.drawImage(last_pen_image, 1380, 8);
+  }
 }
 
-function key_event(ev) {
+// function renderHorse() {
+//   context.save();
+//   context.translate(x_pos, y_pos);
+//   if (velocity < 0) {
+//     context.scale(-1, 1);
+//   }
+//   context.drawImage(trotImages[current_frame], -center_x, -center_y);
+//   context.restore();
+// }
+
+function distance(x1, y1, x2, y2) {
+  var x_diff = Math.abs(x1 - x2);
+  var y_diff = Math.abs(y1 - y2);
+  return Math.sqrt(x_diff*x_diff + y_diff*y_diff);
+}
+
+function handleKeys(ev) {
   ev.preventDefault();
 
+  if (mode === "game") {
+    handleGameKeys(ev);
+  } else if (mode === "title") {
+    handleTitleKeys(ev);
+  }
+}
+
+function handleGameKeys(ev) {
   if (ev.key == "ArrowLeft") {
     dude.direction = "left";
   } else if (ev.key == "ArrowRight") {
@@ -124,6 +337,16 @@ function key_event(ev) {
     dude.direction = "up";
   } else if (ev.key == "ArrowDown") {
     dude.direction = "down";
+  }
+}
+
+function handleTitleKeys(ev) {
+  console.log(ev);
+  if (mode == "title" && ev.key == "Enter") {
+    console.log("switching");
+    mode = "game";
+
+    cueTheMusic();
   }
 }
 
