@@ -42,6 +42,9 @@ for (var i = 1; i <= 50; i++) {
 center_x["crap_surprise"] = 37;
 center_y["crap_surprise"] = 90;
 
+dude_range_x = 200;
+dude_range_y = 120;
+
 class Dude {
   constructor(canvas, map, x_pos, y_pos) {
     this.canvas = canvas;
@@ -52,9 +55,6 @@ class Dude {
     this.velocity = 3.2;
     this.x_velocity = 0.0;
     this.y_velocity = 0.0;
-
-    this.effect_x = 200;
-    this.effect_y = 120;
 
     this.effect_animation_portion = 0;
 
@@ -91,13 +91,13 @@ class Dude {
   update() {
     this.current_frame += 1;
     if (this.current_frame >= dude_images[this.current_animation].length) {
-      if (this.state == "failed") {
+      if (this.state === "failed") {
         this.current_frame -= 1;
       }
       else {
         this.current_frame = 1;
 
-        if (this.state == "crap") {
+        if (this.state === "crap") {
           this.state = "running";
           this.current_animation = "sideways_run";
           this.current_frame = 10;
@@ -105,7 +105,7 @@ class Dude {
       }
     }
 
-    if (this.state == "failed") {
+    if (this.state === "failed") {
       return;
     }
 
@@ -114,7 +114,7 @@ class Dude {
       this.effect_animation_portion = -0.25;
     }
 
-    if (this.state == "crap") {
+    if (this.state === "crap") {
       return;
     }
 
@@ -135,7 +135,7 @@ class Dude {
     if (!map.bump(this.x_pos + this.x_velocity, this.y_pos + this.y_velocity, this.half_width, this.half_height)) {
       this.x_pos += this.x_velocity;
       this.y_pos += this.y_velocity;
-      if (this.state == "stopped") {
+      if (this.state === "stopped") {
         this.state = "running";
         this.current_animation = "sideways_run";
         this.current_frame = 10;
@@ -150,7 +150,7 @@ class Dude {
   }
 
   renderEffect() {
-    if (this.state == "failed" || this.effect_animation_portion < 0) {
+    if (this.state === "failed" || this.effect_animation_portion < 0) {
       return;
     }
     context.globalAlpha = 1.0 - this.effect_animation_portion;
@@ -158,7 +158,7 @@ class Dude {
     //this.context.arc(100, 75, 50, 0, 2 * Math.PI);
     this.context.ellipse(
       this.x_pos, this.y_pos,
-      this.effect_x * this.effect_animation_portion, this.effect_y * this.effect_animation_portion,
+      dude_range_x * this.effect_animation_portion, dude_range_y * this.effect_animation_portion,
       0, 0, 2 * Math.PI);
     this.context.stroke();
     context.globalAlpha = 1.0;
@@ -167,7 +167,7 @@ class Dude {
 
   render() {
     var running_offset = 0;
-    if (this.current_animation == "sideways_run") {
+    if (this.current_animation === "sideways_run") {
       var t = ((this.current_frame + 8) % 16);
       running_offset = 0.25 * (-0.5 * t * t + 8 * t);
     }

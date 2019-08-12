@@ -26,6 +26,9 @@ for (var c = 0; c < horse_colors.length; c++) {
   }
 }
 
+var exclamation_mark_image = new Image();
+exclamation_mark_image.src = "Art/Display/exclamation_mark.png";
+
 var poop_images = [];
 for (var i = 1; i <= 3; i++) {
   poop_images[i] = new Image();
@@ -35,6 +38,8 @@ for (var i = 1; i <= 3; i++) {
 var horse_poop_rate = 1600; // higher is less often. 1600 is pretty good. 400 is great fun for testing.
 
 var poop_drop_height = 40;
+
+var panic_time = 88;
 
 class Poop {
   constructor(x, y, poop_scattering_adjustment, style) {
@@ -59,14 +64,14 @@ class Poop {
   }
 
   render() {
-    if (this.status == "fresh") {
+    if (this.status === "fresh") {
       this.context.drawImage(poop_images[this.style], this.x - 8, this.display_y - 8);
     }
   }
 }
 
 class Horse {
-  constructor(canvas, dude, x_pos, y_pos) {
+  constructor(canvas, dude, x_pos, y_pos, waypoint) {
     this.canvas = canvas;
     this.context = canvas.getContext('2d');
 
@@ -84,13 +89,21 @@ class Horse {
     this.y_pos = y_pos;
 
     this.old_waypoint = -1;
-    this.waypoint = 33;
+    this.waypoint = waypoint;
 
     this.dude = dude;
+
+    this.dude_nearby = false;
+    this.running_home = 0;
+    this.can_flip = true;
 
     this.color = horse_colors[Math.floor(Math.random() * horse_colors.length)];
 
     this.current_animation = "side_trot";
+
+    this.waypoints_seen = 0;
+
+    this.has_escaped = false;
   }
 
   update() {
@@ -99,15 +112,29 @@ class Horse {
       this.current_frame = 1;
     }
 
-    var close_to_dude = false;
-    if (distance(this.x_pos, this.y_pos, this.dude.x_pos, this.dude.y_pos) < 200) {
-      close_to_dude = true;
+    this.dude_nearby = false;
+    if (insideEllipse(this.dude.x_pos, this.dude.y_pos, dude_range_x, dude_range_y, this.x_pos, this.y_pos)) {
+      this.dude_nearby = true;
+      if (this.running_home === 0) {
+        this.running_home = panic_time;
+      }
+    }
+
+    this.running_home -= 1;
+    if (this.running_home < 0) {
+      this.running_home = 0;
+    }
+    if (this.running_home < 26) {
+      this.can_flip = true;
     }
 
     var w = waypoints[this.waypoint];
     var x_diff = Math.abs(this.x_pos - w.x);
     var y_diff = Math.abs(this.y_pos - w.y);
+
+    // Reached waypoint. Get a new waypoint.
     if (distance(this.x_pos, this.y_pos, w.x, w.y) < 5) {
+      this.waypoints_seen += 1;
 
       if (this.waypoint === 35) {
         this.dude.fail();
@@ -116,33 +143,82 @@ class Horse {
       this.old_waypoint = this.waypoint;
 
       this.velocity = this.original_velocity;
-      // if (!close_to_dude) {
-      //   this.waypoint = w.links[Math.floor(Math.random() * w.links.length)];
-      // } else {
-      //   var dist = -1;
-      //   //var home = waypoints[45];
-      //   for (var i = 0; i < w.links.length; i++) {
-      //     var w2 = waypoints[w.links[i]];
-      //     if (distance(this.dude.x_pos, this.dude.y_pos, w2.x, w2.y) > dist) {
-      //       dist = distance(this.dude.x_pos, this.dude.y_pos, w2.x, w2.y);
-      //       this.waypoint = w.links[i];
-      //     }
-      //   }
-      // }
 
-      this.waypoint = w.links[Math.floor(Math.random() * w.links.length)];
+      // If we've never escaped, and we can, let's escape!
+      if (this.has_escaped === false && this.old_waypoint === 45) {
+        var escape_points = [22, 33];
+        this.waypoint = escape_points[Math.floor(Math.random() * 2)];
+        this.has_escaped = true;
+      } else if (this.waypoint < 44 && this.running_home > 0) {
+        // Look for the waypoint that lets you escape the dude
 
-      
+        // all the waypoints that take you away from the dude
+        var potential_waypoints = [];
+        for (var i = 0; i < w.links.length; i++) {
+          var point = w.links[i];
+          var v_x = waypoints[point].x - waypoints[this.old_waypoint].x;
+          var v_y = waypoints[point].y - waypoints[this.old_waypoint].y;
+          var n_x = 10 * v_x / (v_x * v_x + v_y * v_y);
+          var n_y = 10 * v_y / (v_x * v_x + v_y * v_y);
+          if (distance(
+            this.x_pos + n_x, 
+            this.y_pos + n_y,
+            this.dude.x_pos,
+            this.dude.y_pos) > distance(this.x_pos, this.y_pos, this.dude.x_pos, this.dude.y_pos)) {
+            potential_waypoints.push(point);
+          }
+        }
+        
+        if (potential_waypoints.length > 0) {
+          this.waypoint = potential_waypoints[Math.floor(Math.random() * potential_waypoints.length)];
+        } else {
+          this.waypoint = w.links[Math.floor(Math.random() * w.links.length)];
+          console.log("crap");
+          //this.waypoint = 45;
+        }
+        console.log(w.links);
+        console.log(potential_waypoints);
+        console.log(this.waypoint);
 
-      if (close_to_dude === true && this.waypoint < 44) {
-        if (Math.floor(Math.random() * 100) < 50) {
+        // If the dude's not actually nearby, run home
+        if (this.dude_nearby === false && this.waypoint < 44) {
           this.waypoint = w.home;
         }
+
+        // If the home waypoint is available, take this, highest priority
+        if (w.home === 45) {
+          this.waypoint = w.home;
+        }
+      } else {
+        // Here we can just choose a random waypoint. Note that home is never one of the options.
+        this.waypoint = w.links[Math.floor(Math.random() * w.links.length)];
+      }
+    }
+
+    // Oh heck, the dude. I'm going to turn around.
+    if (this.dude_nearby && this.can_flip) {
+      var x_to_dude = Math.abs(this.x_pos - this.dude.x_pos);
+      var y_to_dude = Math.abs(this.y_pos - this.dude.y_pos);
+      var x_test_velocity = 0;
+      var y_test_velocity = 0;
+      if (y_to_dude > x_to_dude) {
+        y_test_velocity = this.y_velocity;
+      } else {
+        x_test_velocity = this.x_velocity;
       }
 
-      // } && (this.old_waypoint === 22 || this.old_waypoint === 33)) {
-      //   this.waypoint = 45;
-      // }
+      if (distance(
+        this.x_pos + x_test_velocity, 
+        this.y_pos + y_test_velocity,
+        this.dude.x_pos,
+        this.dude.y_pos) < distance(this.x_pos, this.y_pos, this.dude.x_pos, this.dude.y_pos)
+        && this.waypoint < 44) {
+        this.temp = this.waypoint;
+        this.waypoint = this.old_waypoint;
+        this.old_waypoint = this.temp;
+        this.can_flip = false;
+        this.running_home = panic_time;
+      }
     }
 
     if (x_diff > y_diff) {
@@ -167,31 +243,6 @@ class Horse {
         this.current_animation = "front_trot";
         this.center_x = 14;
       }
-      
-    }
-
-    if (close_to_dude) {
-      var x_to_dude = Math.abs(this.x_pos - this.dude.x_pos);
-      var y_to_dude = Math.abs(this.y_pos - this.dude.y_pos);
-      var x_test_velocity = 0;
-      var y_test_velocity = 0;
-      if (y_to_dude > x_to_dude) {
-        y_test_velocity = this.y_velocity;
-      } else {
-        x_test_velocity = this.x_velocity;
-      }
-
-      if (distance(
-        this.x_pos + x_test_velocity, 
-        this.y_pos + y_test_velocity,
-        this.dude.x_pos,
-        this.dude.y_pos) < distance(this.x_pos, this.y_pos, this.dude.x_pos, this.dude.y_pos)
-        && this.waypoint < 44) {
-        this.temp = this.waypoint;
-        this.waypoint = this.old_waypoint;
-        this.old_waypoint = this.temp;
-        this.velocity = this.dude.velocity;
-      }
     }
 
     this.x_pos += this.x_velocity;
@@ -201,7 +252,7 @@ class Horse {
   maybePoop(poops) {
     if (horse_poop_rate * Math.random() < 5) {
       // make a poop!
-      if (this.current_animation == "side_trot") {
+      if (this.current_animation === "side_trot") {
         var butt_adjustment = -20;
         if (this.x_velocity < 0) {
           butt_adjustment = 20;
@@ -219,6 +270,14 @@ class Horse {
       this.context.scale(-1, 1);
     }
     this.context.drawImage(horse_images[this.color][this.current_animation][this.current_frame], -this.center_x, -this.center_y);
+    
+    if (this.running_home > 0) {
+      var exclamation_mark_adjustment = 0;
+      if (this.current_animation === "front_trot") exclamation_mark_adjustment = 8;
+      if (this.current_animation === "rear_trot") exclamation_mark_adjustment = 17;
+      if (this.current_animation === "side_trot") exclamation_mark_adjustment = 100;
+      this.context.drawImage(exclamation_mark_image, -this.center_x + exclamation_mark_adjustment, -this.center_y - 35)
+    }
     this.context.restore();
   }
 }

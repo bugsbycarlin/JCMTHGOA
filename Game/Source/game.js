@@ -9,7 +9,7 @@ var tries_left = 3;
 
 var pens_to_go = 5;
 
-var num_horses = 8;
+var num_horses;
 
 var cussin_sound_available = true;
 
@@ -63,7 +63,6 @@ for (var i = 0; i < 10; i++) {
   number_text[i].src = "Art/Display/" + i + ".png";
 }
 
-
 var map;
 var horses = [];
 var dude;
@@ -96,19 +95,36 @@ function initialize()
 
   map = new Map();
 
-  // Game over testing
-  // dude = new Dude(canvas, map, waypoints[36].x - 500, waypoints[36].y);
+  resetGame();
+  mode = "title";
+}
+
+function resetGame() {
+  mode = "game";
+
+  seconds_of_this_crap = 0;
+  tries_left = 3;
+  pens_to_go = 5;
+  num_horses = 8;
+
+  dude = new Dude(canvas, map, waypoints[36].x - 300, waypoints[36].y);
+
   // for (var i = 0; i < num_horses; i++) {
-  //   horses[i] = new Horse(canvas, dude, waypoints[37].x + 2, waypoints[37].y + 5);
-  //   horses[i].waypoint = 27;
+  //   horses[i] = new Horse(canvas, dude, 650 + 200 * Math.random(), 500 + 50 * Math.random());
+  //   if (i % 2 === 1) horses[i].waypoint = 22;
   // }
 
-  // Regular
-  dude = new Dude(canvas, map, waypoints[36].x - 300, waypoints[36].y);
   for (var i = 0; i < num_horses; i++) {
-    horses[i] = new Horse(canvas, dude, 650 + 200 * Math.random(), 500 + 50 * Math.random());
-    if (i % 2 == 1) horses[i].waypoint = 22;
+    horses[i] = new Horse(canvas,
+      dude,
+      650 + 200 * Math.random(),
+      500,
+      44 + i % 3);
+    //if (i % 2 === 1) horses[i].waypoint = 22;
+    horses[i]
   }
+
+  poops = [];
 }
 
 function cueTheMusic() {
@@ -145,7 +161,7 @@ function cueTheMusic() {
 function update() {
   if (mode === "title") {
     //pass
-  } else if (mode == "game") {
+  } else if (mode === "game") {
     if (dude.state != "failed") {
       seconds_of_this_crap += 36.0/1000.0;
     }
@@ -172,13 +188,13 @@ function updateGame() {
 }
 
 function updateDude() {
-  if (mode == "title") {
+  if (mode === "title") {
     return;
   }
   dude.update();
 
   for (var i = 0; i < poops.length; i++) {
-    if (poops[i].status == "fresh" && dude.status != "crap" && distance(dude.x_pos, dude.y_pos, poops[i].x, poops[i].y) < 8) {
+    if (poops[i].status === "fresh" && dude.status != "crap" && distance(dude.x_pos, dude.y_pos, poops[i].x, poops[i].y) < 8) {
       dude.stepInCrap();
       poops[i].status = "destroyed";
       var crap_sound_string = "#crap_" + (Math.floor(Math.random() * 10) + 1).toString();
@@ -194,7 +210,6 @@ function updateDude() {
 }
 
 function debugRenderWaypoints() {
-  console.log("in here");
   for (var i = 0; i <= 43; i++) {
     var w1 = waypoints[i];
     for (var j = 0; j < w1.links.length; j++) {
@@ -240,7 +255,7 @@ function drawNumber(number, x, y) {
       context.drawImage(number_text[current_digit], x + 26 * (digits - i), y); 
     }
     return digits;
-  } else if (number == 0) {
+  } else if (number === 0) {
     context.drawImage(number_text[0], x, y);
     return 0;
   }
@@ -290,7 +305,7 @@ function renderGame(context) {
       draw_y = map.y + map.y_spacing * h;
 
       if (tiles[h][w] === "x") {
-        //if(h == 0 || h == tiles.length - 1) {
+        //if(h === 0 || h == =tiles.length - 1) {
         //context.drawImage(fence_images["extension"], draw_x, draw_y);
         //draw_y -= 5;
         //}
@@ -305,7 +320,7 @@ function renderGame(context) {
           context.drawImage(fence_images["solitary"], draw_x, draw_y);
         }
 
-        //if (h == 0 || h == tiles.length - 1) draw_y += 40;
+        //if (h === 0 || h === tiles.length - 1) draw_y += 40;
         //draw_y += 5;
       }
 
@@ -321,7 +336,7 @@ function renderGame(context) {
     }
   }
 
-  if (dude.state == "failed") {
+  if (dude.state === "failed") {
     context.drawImage(game_over_image, -35, 155);
   }
 
@@ -363,6 +378,10 @@ function distance(x1, y1, x2, y2) {
   return Math.sqrt(x_diff*x_diff + y_diff*y_diff);
 }
 
+function insideEllipse(e_x, e_y, e_width, e_height, x, y) {
+  return Math.pow(x - e_x, 2) / Math.pow(e_width, 2) + Math.pow(y - e_y, 2) / Math.pow(e_height, 2) <= 1;
+}
+
 function handleKeys(ev) {
   ev.preventDefault();
 
@@ -374,20 +393,27 @@ function handleKeys(ev) {
 }
 
 function handleGameKeys(ev) {
-  if (ev.key == "ArrowLeft") {
+  if (ev.key === "ArrowLeft") {
     dude.direction = "left";
-  } else if (ev.key == "ArrowRight") {
+  } else if (ev.key === "ArrowRight") {
     dude.direction = "right";
-  } else if (ev.key == "ArrowUp") {
+  } else if (ev.key === "ArrowUp") {
     dude.direction = "up";
-  } else if (ev.key == "ArrowDown") {
+  } else if (ev.key === "ArrowDown") {
     dude.direction = "down";
+  }
+
+  if (ev.key === "f") {
+    dude.fail()
+  }
+
+  if (dude.state === "failed" && ev.key === "Enter") {
+    resetGame();
   }
 }
 
 function handleTitleKeys(ev) {
-  console.log(ev);
-  if (mode == "title" && ev.key == "Enter") {
+  if (ev.key === "Enter") {
     console.log("switching");
     mode = "game";
 
