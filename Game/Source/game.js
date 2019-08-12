@@ -194,9 +194,9 @@ function updateDude() {
   dude.update();
 
   for (var i = 0; i < poops.length; i++) {
-    if (poops[i].status === "fresh" && dude.status != "crap" && distance(dude.x_pos, dude.y_pos, poops[i].x, poops[i].y) < 8) {
+    if (dude.state === "running" && poops[i].state === "fresh" && dude.state != "crap" && distance(dude.x_pos, dude.y_pos, poops[i].x, poops[i].y) < 8) {
       dude.stepInCrap();
-      poops[i].status = "destroyed";
+      poops[i].state = "destroyed";
       var crap_sound_string = "#crap_" + (Math.floor(Math.random() * 10) + 1).toString();
       if (cussin_sound_available) {
         cussin_sound_available = false;
@@ -292,6 +292,13 @@ function renderGame(context) {
 
   dude.renderEffect();
 
+  if (dude.state === "kicked_fall" && dude.current_frame < 10) {
+    this.context.save();
+    this.context.translate(
+      Math.floor(Math.random() * 10) - 5,
+      Math.floor(Math.random() * 10) - 5);
+  }
+
   for (var i = 0; i < poops.length; i++) {
     poops[i].render();
   }
@@ -360,6 +367,10 @@ function renderGame(context) {
   } else {
     context.drawImage(last_pen_image, 1380, 8);
   }
+
+  if (dude.state === "kicked_fall" && dude.current_frame < 10) {
+    this.context.restore();
+  }
 }
 
 // function renderHorse() {
@@ -393,14 +404,16 @@ function handleKeys(ev) {
 }
 
 function handleGameKeys(ev) {
-  if (ev.key === "ArrowLeft") {
-    dude.direction = "left";
-  } else if (ev.key === "ArrowRight") {
-    dude.direction = "right";
-  } else if (ev.key === "ArrowUp") {
-    dude.direction = "up";
-  } else if (ev.key === "ArrowDown") {
-    dude.direction = "down";
+  if (dude.state === "running" || dude.state === "crap" || dude.state === "stopped") {
+    if (ev.key === "ArrowLeft") {
+      dude.direction = "left";
+    } else if (ev.key === "ArrowRight") {
+      dude.direction = "right";
+    } else if (ev.key === "ArrowUp") {
+      dude.direction = "up";
+    } else if (ev.key === "ArrowDown") {
+      dude.direction = "down";
+    }
   }
 
   if (ev.key === "f") {

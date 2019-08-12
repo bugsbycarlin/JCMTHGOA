@@ -24,6 +24,12 @@ for (var c = 0; c < horse_colors.length; c++) {
     horse_images[color]["rear_trot"][i] = new Image();
     horse_images[color]["rear_trot"][i].src = "Art/" + color + "Horse/rear_trot_" + i + ".png";
   }
+
+  horse_images[color]["back_kick"] = [];
+  for (var i = 1; i <= 7; i++) {
+    horse_images[color]["back_kick"][i] = new Image();
+    horse_images[color]["back_kick"][i].src = "Art/" + color + "Horse/back_kick_" + i + ".png";
+  }
 }
 
 var exclamation_mark_image = new Image();
@@ -41,6 +47,10 @@ var poop_drop_height = 40;
 
 var panic_time = 88;
 
+var kick_outer_range = 80;
+var kick_inner_range = 30;
+var kick_vertical_tolerance = 15; 
+
 class Poop {
   constructor(x, y, poop_scattering_adjustment, style) {
     this.context = canvas.getContext('2d');
@@ -49,7 +59,7 @@ class Poop {
     this.vy = 0;
     this.display_y = this.y - poop_scattering_adjustment - poop_drop_height;
     this.style = style;
-    this.status = "fresh";
+    this.state = "fresh";
   }
 
   update() {
@@ -64,7 +74,7 @@ class Poop {
   }
 
   render() {
-    if (this.status === "fresh") {
+    if (this.state === "fresh") {
       this.context.drawImage(poop_images[this.style], this.x - 8, this.display_y - 8);
     }
   }
@@ -82,7 +92,6 @@ class Horse {
     this.x_velocity = 0.0;
     this.y_velocity = 0.0;
 
-    this.total_frames = 21;
     this.current_frame = 0;
 
     this.x_pos = x_pos;
@@ -108,8 +117,44 @@ class Horse {
 
   update() {
     this.current_frame += 1;
-    if (this.current_frame > this.total_frames) {
+    if (this.current_frame >= horse_images[this.color][this.current_animation].length) {
       this.current_frame = 1;
+
+      if (this.current_animation === "back_kick") {
+        this.current_animation = "side_trot";
+        this.current_frame = 10;
+      }
+    }
+
+    if (this.current_animation === "back_kick") {
+      return;
+    }
+
+    if (this.dude.state === "running") {
+      var kick = false;
+      if (this.dude.direction === "right" 
+        && this.x_velocity > 0 
+        && this.dude.x_pos < this.x_pos - kick_inner_range
+        && this.dude.x_pos > this.x_pos - kick_outer_range
+        && Math.abs(this.dude.y_pos - this.y_pos + 10) < kick_vertical_tolerance) {
+        kick = true;
+        this.x_pos -= 30;
+        this.dude.x_velocity = 1; // force velocity in case it hasn't caught up with direction
+      } else if (this.dude.direction === "left" 
+        && this.x_velocity < 0 
+        && this.dude.x_pos > this.x_pos + kick_inner_range
+        && this.dude.x_pos < this.x_pos + kick_outer_range
+        && Math.abs(this.dude.y_pos - this.y_pos + 10) < kick_vertical_tolerance) {
+        kick = true;
+        this.x_pos += 30;
+        this.dude.x_velocity = -1; // force velocity in case it hasn't caught up with direction
+      }
+      if (kick) {
+        this.current_animation = "back_kick";
+        this.current_frame = 1;
+        this.dude.kickedFall();
+        return;
+      }
     }
 
     this.dude_nearby = false;
@@ -173,12 +218,12 @@ class Horse {
           this.waypoint = potential_waypoints[Math.floor(Math.random() * potential_waypoints.length)];
         } else {
           this.waypoint = w.links[Math.floor(Math.random() * w.links.length)];
-          console.log("crap");
+          //console.log("crap");
           //this.waypoint = 45;
         }
-        console.log(w.links);
-        console.log(potential_waypoints);
-        console.log(this.waypoint);
+        // console.log(w.links);
+        // console.log(potential_waypoints);
+        // console.log(this.waypoint);
 
         // If the dude's not actually nearby, run home
         if (this.dude_nearby === false && this.waypoint < 44) {
@@ -279,6 +324,12 @@ class Horse {
       this.context.drawImage(exclamation_mark_image, -this.center_x + exclamation_mark_adjustment, -this.center_y - 35)
     }
     this.context.restore();
+
+    this.context.beginPath();
+    this.context.arc(
+      this.x_pos, this.y_pos - 10, 5,
+      0, 2 * Math.PI);
+    this.context.stroke();
   }
 }
 

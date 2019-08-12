@@ -6,6 +6,7 @@ center_x = {};
 center_y = {};
 
 var dude_images = {};
+
 dude_images["sideways_run"] = [];
 for (var i = 1; i <= 32; i++) {
   dude_images["sideways_run"][i] = new Image();
@@ -41,6 +42,18 @@ for (var i = 1; i <= 50; i++) {
 }
 center_x["crap_surprise"] = 37;
 center_y["crap_surprise"] = 90;
+
+dude_images["kicked_fall"] = [];
+for (var i = 1; i <= 22; i++) {
+  dude_images["kicked_fall"][i] = new Image();
+  dude_images["kicked_fall"][i].src = "Art/Dude/kicked_fall_" + i + ".png";
+}
+for (var i = 23; i <= 84; i++) {
+  dude_images["kicked_fall"][i] = dude_images["kicked_fall"][22];
+}
+center_x["kicked_fall"] = 147;
+center_y["kicked_fall"] = 80;
+
 
 dude_range_x = 200;
 dude_range_y = 120;
@@ -88,6 +101,14 @@ class Dude {
     }
   }
 
+  kickedFall() {
+    if (this.state != "kicked_fall") {
+      this.state = "kicked_fall";
+      this.current_frame = 1;
+      this.current_animation = "kicked_fall";
+    }
+  }
+
   update() {
     this.current_frame += 1;
     if (this.current_frame >= dude_images[this.current_animation].length) {
@@ -102,6 +123,23 @@ class Dude {
           this.current_animation = "sideways_run";
           this.current_frame = 10;
         }
+
+        if (this.state == "kicked_fall") {
+          this.state = "running";
+          this.current_animation = "sideways_run";
+          this.current_frame = 10;
+          if (this.direction == "right") {
+            this.x_pos -= 70;
+            while (map.bump(this.x_pos + this.x_velocity, this.y_pos + this.y_velocity, this.half_width, this.half_height)) {
+              this.x_pos -= 10;
+            }
+          } else {
+            this.x_pos += 70;
+            while (map.bump(this.x_pos + this.x_velocity, this.y_pos + this.y_velocity, this.half_width, this.half_height)) {
+              this.x_pos += 10;
+            }
+          }
+        }
       }
     }
 
@@ -114,7 +152,7 @@ class Dude {
       this.effect_animation_portion = -0.25;
     }
 
-    if (this.state === "crap") {
+    if (this.state === "crap" || this.state === "kicked_fall") {
       return;
     }
 
@@ -181,6 +219,12 @@ class Dude {
     // this.context.globalAlpha = 1.0;
     this.context.drawImage(dude_images[this.current_animation][this.current_frame], -center_x[this.current_animation], -center_y[this.current_animation]);
     this.context.restore();
+
+    this.context.beginPath();
+    this.context.arc(
+      this.x_pos, this.y_pos, 5,
+      0, 2 * Math.PI);
+    this.context.stroke();
   }
 
   getZIndex() {
