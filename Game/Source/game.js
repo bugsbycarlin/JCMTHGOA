@@ -7,7 +7,7 @@ var seconds_of_this_crap = 0;
 
 // var tries_left = 3;
 
-var pens_to_go = 5;
+var pens_to_go = 3;
 
 var num_horses;
 
@@ -16,6 +16,8 @@ var cussin_sound_available = true;
 var cussin_frequency = 3000;
 var next_cuss = 0;
 var time_since_cussin = 0;
+
+var skip_render = false;
 
 var fence_images = [];
 fence_images["horizontal"] = new Image();
@@ -74,9 +76,9 @@ for (var i = 0; i < 10; i++) {
 }
 
 var map;
-var horses = [];
+var horses;
 var dude;
-var poops = [];
+var poops;
 
 function initialize()
 {
@@ -103,22 +105,63 @@ function initialize()
 
   context = canvas.getContext('2d');
 
-  map = new Map_One();
-
-  resetGame();
   mode = "title";
 }
 
-function resetGame() {
+function startLevelOne() {
   mode = "game";
+  map = new Map_One();
 
   seconds_of_this_crap = 0;
   // tries_left = 3;
-  pens_to_go = 5;
+  pens_to_go = 3;
   num_horses = map.num_horses;
 
   dude = new Dude(canvas, map, -93, 724);
 
+  horses = [];
+  for (var i = 0; i < num_horses; i++) {
+    horses[i] = new Horse(canvas,
+      dude,
+      1200 + 200 * Math.random(),
+      670,
+      map.horse_start_waypoints[i % 3]);
+  }
+
+  poops = [];
+}
+
+function startLevelTwo() {
+  mode = "game";
+  map = new Map_Two();
+
+  pens_to_go = 2;
+  num_horses = map.num_horses;
+
+  dude = new Dude(canvas, map, -93, 724);
+
+  horses = [];
+  for (var i = 0; i < num_horses; i++) {
+    horses[i] = new Horse(canvas,
+      dude,
+      650 + 200 * Math.random(),
+      450,
+      map.horse_start_waypoints[i % 3]);
+  }
+
+  poops = [];
+}
+
+function startLevelThree() {
+  mode = "game";
+  map = new Map_Three();
+
+  pens_to_go = 1;
+  num_horses = map.num_horses;
+
+  dude = new Dude(canvas, map, -93, 724);
+
+  horses = [];
   for (var i = 0; i < num_horses; i++) {
     horses[i] = new Horse(canvas,
       dude,
@@ -151,7 +194,7 @@ function cueTheMusic() {
   });
 
   // Start with one of the first three songs.
-  var first_song_string = "#song_" + (Math.floor(Math.random() * 3) + 1).toString();
+  var first_song_string = "#song_" + (Math.floor(Math.random() * 4) + 1).toString();
   $(first_song_string).trigger("play");
 
   // $("#cussin").prop("volume",0.8);
@@ -174,7 +217,11 @@ function update() {
     updateGame();
   }
 
-  render();
+  if (!skip_render) {
+    render();
+  } else {
+    skip_render = false;
+  }
 }
 
 function updateGame() {
@@ -199,27 +246,21 @@ function updateGame() {
     }
   }
 
-  if (!no_escapes_yet && !wayward_horse) {
-    dude.succeed();
-  }
-
   for (var i = 0; i < poops.length; i++) {
     poops[i].update();
   }
 
-  // if (dude.state != "failed" && dude.state != "kicked_fall") {
-  //   time_since_cussin += 36.0;
-  //   if (time_since_cussin > next_cuss && cussin_sound_available) {
-  //     cussin_sound_available = false;
-  //     var cussin_string = "#cussin_" + (Math.floor(Math.random() * 28) + 1).toString();
-  //     $(cussin_string).trigger("play");
-  //     $(cussin_string).bind("ended", function(){
-  //       cussin_sound_available = true;
-  //     });
-  //     time_since_cussin = 0;
-  //     next_cuss = cussin_frequency + Math.floor(Math.random() * cussin_frequency);
-  //   }
-  // }
+  if (!no_escapes_yet && !wayward_horse) {
+    if (map.map_number == 1) {
+      startLevelTwo();
+      skip_render = true;
+    } else if (map.map_number == 2) {
+      startLevelThree();
+      skip_render = true;
+    } else {
+      dude.succeed();
+    }
+  }
 }
 
 function updateDude() {
@@ -245,7 +286,7 @@ function updateDude() {
 }
 
 function debugRenderWaypoints() {
-  for (var i = 0; i <= 43; i++) {
+  for (var i = 0; i < Object.keys(map.waypoints).length; i++) {
     var w1 = map.waypoints[i];
     for (var j = 0; j < w1.links.length; j++) {
       var w2 = map.waypoints[w1.links[j]];
@@ -264,6 +305,7 @@ function debugRenderWaypoints() {
 
   for (const [key, value] of Object.entries(map.waypoints)) {
     var i = parseInt(key);
+    console.log(map.waypoints[i].x);
     if (!map.success_waypoints.includes(i)) {
       drawNumber(i, map.waypoints[i].x, map.waypoints[i].y);
     }
@@ -448,6 +490,12 @@ function handleKeys(ev) {
   }
 }
 
+var reverse_directions = {
+  "left": "right",
+  "right": "left",
+  "up": "down",
+  "down": "up"
+};
 function handleGameKeys(ev) {
   if (dude.state === "running" || dude.state === "crap" || dude.state === "stopped") {
     var old_direction = dude.direction;
@@ -459,6 +507,10 @@ function handleGameKeys(ev) {
       dude.direction = "up";
     } else if (ev.key === "ArrowDown") {
       dude.direction = "down";
+    }
+
+    if (reverse_directions[dude.direction] === old_direction) {
+      dude.reverseCloud(old_direction);
     }
 
     if (old_direction != dude.direction && Math.random() * 100 < 65) {
@@ -473,20 +525,21 @@ function handleGameKeys(ev) {
     }
   }
 
-  if (ev.key === "f") {
-    dude.fail()
-  }
+  // if (ev.key === "f") {
+  //   dude.fail()
+  // }
+  // if (ev.key === "s") {
+  //   dude.succeed()
+  // }
 
   if (dude.state === "failed" && ev.key === "Enter") {
-    resetGame();
+    startLevelOne();
   }
 }
 
 function handleTitleKeys(ev) {
   if (ev.key === "Enter") {
-    console.log("switching");
-    mode = "game";
-
+    startLevelOne();
     cueTheMusic();
   }
 }

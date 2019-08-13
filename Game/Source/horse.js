@@ -34,8 +34,11 @@ for (var c = 0; c < horse_colors.length; c++) {
   }
 }
 
-var exclamation_mark_image = new Image();
-exclamation_mark_image.src = "Art/Display/exclamation_mark.png";
+var frown_image = new Image();
+frown_image.src = "Art/Display/frown.png";
+
+var home_image = new Image();
+home_image.src = "Art/Display/home.png";
 
 var poop_images = [];
 for (var i = 1; i <= 3; i++) {
@@ -47,7 +50,7 @@ var horse_poop_rate = 1600; // higher is less often. 1600 is pretty good. 400 is
 
 var poop_drop_height = 40;
 
-var panic_time = 88;
+var panic_time = 108;
 
 var kick_outer_range = 80;
 var kick_inner_range = 30;
@@ -199,10 +202,10 @@ class Horse {
       this.velocity = this.original_velocity;
 
       // If we've never escaped, and we can, let's escape!
-      if (this.has_escaped === false && this.old_waypoint === 45) {
+      if (this.has_escaped === false && this.old_waypoint === map.central_waypoint) {
         this.waypoint = map.escape_waypoints[Math.floor(Math.random() * map.escape_waypoints.length)];
         this.has_escaped = true;
-      } else if (this.waypoint < 44 && this.running_home > 0) {
+      } else if (!map.success_waypoints.includes(this.waypoint) && this.running_home > 0) {
         // Look for the waypoint that lets you escape the dude
 
         // all the waypoints that take you away from the dude
@@ -319,13 +322,18 @@ class Horse {
     }
     this.context.drawImage(horse_images[this.color][this.current_animation][this.current_frame], -this.center_x, -this.center_y);
     
-    if (this.running_home > 0) {
-      var exclamation_mark_adjustment = 0;
-      if (this.current_animation === "front_trot") exclamation_mark_adjustment = 8;
-      if (this.current_animation === "rear_trot") exclamation_mark_adjustment = 17;
-      if (this.current_animation === "side_trot") exclamation_mark_adjustment = 100;
-      this.context.drawImage(exclamation_mark_image, -this.center_x + exclamation_mark_adjustment, -this.center_y - 35)
+    if (!map.success_waypoints.includes(this.old_waypoint)) {
+      var emotion_bubble_adjustment = 0;
+      if (this.current_animation === "front_trot") emotion_bubble_adjustment = 0;
+      if (this.current_animation === "rear_trot") emotion_bubble_adjustment = 9;
+      if (this.current_animation === "side_trot") emotion_bubble_adjustment = 92;
+      if (this.running_home > 0 && !this.dude_nearby) {
+        this.context.drawImage(home_image, -this.center_x + emotion_bubble_adjustment, -this.center_y - 35)
+      } else if (this.dude_nearby) {
+        this.context.drawImage(frown_image, -this.center_x + emotion_bubble_adjustment, -this.center_y - 35)
+      }
     }
+
     this.context.restore();
 
     // debug render location

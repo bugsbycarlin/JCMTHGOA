@@ -62,6 +62,13 @@ for (var i = 23; i <= 84; i++) {
 center_x["kicked_fall"] = 147;
 center_y["kicked_fall"] = 80;
 
+var dust_cloud_image = new Image();
+dust_cloud_image.src = "Art/Display/dust_cloud.png";
+var dust_cloud_x = 0;
+var dust_cloud_y = 0;
+var dust_cloud_direction = "left";
+var dust_cloud_ttl = -1;
+var dust_cloud_speed = 2;
 
 dude_range_x = 200;
 dude_range_y = 120;
@@ -126,6 +133,17 @@ class Dude {
     }
   }
 
+  reverseCloud(old_direction) {
+    if (old_direction === "up" || old_direction === "down") {
+      return;
+    }
+    dust_cloud_x = this.x_pos;
+    dust_cloud_y = this.y_pos - 12;
+    dust_cloud_direction = old_direction;
+    dust_cloud_ttl = 12;
+
+  }
+
   update() {
     this.current_frame += 1;
     if (this.current_frame >= dude_images[this.current_animation].length) {
@@ -158,6 +176,20 @@ class Dude {
           }
         }
       }
+    }
+
+    if (dust_cloud_ttl >= 0) {
+      dust_cloud_ttl -= 1;
+      if (dust_cloud_direction === "left") {
+        dust_cloud_x -= dust_cloud_speed;
+      } else if (dust_cloud_direction === "right") {
+        dust_cloud_x += dust_cloud_speed;
+      } else if (dust_cloud_direction === "up") {
+        dust_cloud_y -= dust_cloud_speed;
+      } else if (dust_cloud_direction === "down") {
+        dust_cloud_y += dust_cloud_speed;
+      }
+      dust_cloud_ttl -= 1;
     }
 
     if (this.state === "failed" || this.state === "succeeded") {
@@ -221,6 +253,10 @@ class Dude {
   }
 
   render() {
+    if (dust_cloud_ttl >= 0) {
+      this.context.drawImage(dust_cloud_image, dust_cloud_x, dust_cloud_y);
+    }
+
     var running_offset = 0;
     if (this.current_animation === "sideways_run") {
       var t = ((this.current_frame + 8) % 16);
