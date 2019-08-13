@@ -5,13 +5,17 @@ var mode = "title";
 
 var seconds_of_this_crap = 0;
 
-var tries_left = 3;
+// var tries_left = 3;
 
 var pens_to_go = 5;
 
 var num_horses;
 
 var cussin_sound_available = true;
+
+var cussin_frequency = 3000;
+var next_cuss = 0;
+var time_since_cussin = 0;
 
 var fence_images = [];
 fence_images["horizontal"] = new Image();
@@ -36,11 +40,17 @@ title_horse_2_frame = 1;
 var game_over_image = new Image();
 game_over_image.src = "Art/Display/game_over.png";
 
+var game_win_image = new Image();
+game_win_image.src = "Art/Display/game_win.png";
+
 var background_image = new Image();
 background_image.src = "Art/Background/farm.png";
 
 var title_image = new Image();
 title_image.src = "Art/Display/title_screen.png";
+
+var credits_image = new Image();
+credits_image.src = "Art/Display/credits.png";
 
 var martha_image = new Image();
 martha_image.src = "Art/Display/martha.png";
@@ -54,8 +64,8 @@ pens_to_go_image.src = "Art/Display/pens_to_go.png";
 var seconds_of_this_crap_image = new Image();
 seconds_of_this_crap_image.src = "Art/Display/seconds_of_this_crap.png";
 
-var tries_left_image = new Image();
-tries_left_image.src = "Art/Display/tries_left.png";
+// var tries_left_image = new Image();
+// tries_left_image.src = "Art/Display/tries_left.png";
 
 var number_text = [];
 for (var i = 0; i < 10; i++) {
@@ -93,7 +103,7 @@ function initialize()
 
   context = canvas.getContext('2d');
 
-  map = new Map();
+  map = new Map_One();
 
   resetGame();
   mode = "title";
@@ -103,25 +113,18 @@ function resetGame() {
   mode = "game";
 
   seconds_of_this_crap = 0;
-  tries_left = 3;
+  // tries_left = 3;
   pens_to_go = 5;
-  num_horses = 8;
+  num_horses = map.num_horses;
 
-  dude = new Dude(canvas, map, waypoints[36].x - 300, waypoints[36].y);
-
-  // for (var i = 0; i < num_horses; i++) {
-  //   horses[i] = new Horse(canvas, dude, 650 + 200 * Math.random(), 500 + 50 * Math.random());
-  //   if (i % 2 === 1) horses[i].waypoint = 22;
-  // }
+  dude = new Dude(canvas, map, -93, 724);
 
   for (var i = 0; i < num_horses; i++) {
     horses[i] = new Horse(canvas,
       dude,
       650 + 200 * Math.random(),
       500,
-      44 + i % 3);
-    //if (i % 2 === 1) horses[i].waypoint = 22;
-    horses[i]
+      map.horse_start_waypoints[i % 3]);
   }
 
   poops = [];
@@ -156,13 +159,15 @@ function cueTheMusic() {
   // $("#cussin").bind("ended", function(){
   //   $("#cussin").trigger("play");
   // });
+
+  next_cuss = cussin_frequency + Math.floor(Math.random() * cussin_frequency);
 }
 
 function update() {
   if (mode === "title") {
     //pass
   } else if (mode === "game") {
-    if (dude.state != "failed") {
+    if (dude.state != "failed" && dude.state != "succeeded") {
       seconds_of_this_crap += 36.0/1000.0;
     }
 
@@ -174,17 +179,47 @@ function update() {
 
 function updateGame() {
 
+  if (dude.state === "succeeded") {
+    return;
+  }
+
+  var no_escapes_yet = true;
+  var wayward_horse = false;
   for (var i = 0; i < num_horses; i++) {
     horses[i].update();
 
     horses[i].maybePoop(poops);
+
+    if (horses[i].has_escaped) {
+      no_escapes_yet = false;
+    }
+
+    if (!map.success_waypoints.includes(horses[i].waypoint) || map.escape_waypoints.includes(horses[i].old_waypoint)) {
+      wayward_horse = true;
+    }
+  }
+
+  if (!no_escapes_yet && !wayward_horse) {
+    dude.succeed();
   }
 
   for (var i = 0; i < poops.length; i++) {
     poops[i].update();
   }
 
-  //dude.update();
+  // if (dude.state != "failed" && dude.state != "kicked_fall") {
+  //   time_since_cussin += 36.0;
+  //   if (time_since_cussin > next_cuss && cussin_sound_available) {
+  //     cussin_sound_available = false;
+  //     var cussin_string = "#cussin_" + (Math.floor(Math.random() * 28) + 1).toString();
+  //     $(cussin_string).trigger("play");
+  //     $(cussin_string).bind("ended", function(){
+  //       cussin_sound_available = true;
+  //     });
+  //     time_since_cussin = 0;
+  //     next_cuss = cussin_frequency + Math.floor(Math.random() * cussin_frequency);
+  //   }
+  // }
 }
 
 function updateDude() {
@@ -211,9 +246,9 @@ function updateDude() {
 
 function debugRenderWaypoints() {
   for (var i = 0; i <= 43; i++) {
-    var w1 = waypoints[i];
+    var w1 = map.waypoints[i];
     for (var j = 0; j < w1.links.length; j++) {
-      var w2 = waypoints[w1.links[j]];
+      var w2 = map.waypoints[w1.links[j]];
       //console.log(w1.x, w1.y, w2.x, w2.y);
       if (i > w1.links[j]) {
         context.lineWidth = 4;
@@ -227,8 +262,11 @@ function debugRenderWaypoints() {
     }
   }
 
-  for (var i = 0; i < 44; i++) {
-    drawNumber(i, waypoints[i].x, waypoints[i].y);
+  for (const [key, value] of Object.entries(map.waypoints)) {
+    var i = parseInt(key);
+    if (!map.success_waypoints.includes(i)) {
+      drawNumber(i, map.waypoints[i].x, map.waypoints[i].y);
+    }
   }
 }
 
@@ -272,7 +310,10 @@ function renderTitle(context) {
   context.drawImage(title_horse[Math.floor(title_horse_1_frame)], 140, 100);
   context.drawImage(title_horse[Math.floor(title_horse_2_frame)], 1210, 100);
 
-  context.drawImage(title_image, 0, 0);
+  //context.drawImage(title_image, 0, 0);
+  context.drawImage(title_image, 0, -180);
+
+  context.drawImage(credits_image, -10, 0);
 
   title_horse_1_frame += 0.5;
   if (title_horse_1_frame >= title_horse.length) {
@@ -347,6 +388,10 @@ function renderGame(context) {
     context.drawImage(game_over_image, -35, 155);
   }
 
+  if (dude.state === "succeeded") {
+    context.drawImage(game_win_image, 0, 0);
+  }
+
   // var display_seconds = seconds_of_this_crap;
   // var digits = Math.floor(Math.log(seconds_of_this_crap) / Math.log(10));
   // for (var i = digits; i >= 0; i--) {
@@ -358,8 +403,8 @@ function renderGame(context) {
 
   context.drawImage(seconds_of_this_crap_image, 26 * digits + 50, 8);
 
-  drawNumber(tries_left, 710, 8);
-  context.drawImage(tries_left_image, 750, 8);
+  // drawNumber(tries_left, 710, 8);
+  // context.drawImage(tries_left_image, 750, 8);
 
   if(pens_to_go > 1) {
     drawNumber(pens_to_go, 1305, 8);
@@ -405,6 +450,7 @@ function handleKeys(ev) {
 
 function handleGameKeys(ev) {
   if (dude.state === "running" || dude.state === "crap" || dude.state === "stopped") {
+    var old_direction = dude.direction;
     if (ev.key === "ArrowLeft") {
       dude.direction = "left";
     } else if (ev.key === "ArrowRight") {
@@ -413,6 +459,17 @@ function handleGameKeys(ev) {
       dude.direction = "up";
     } else if (ev.key === "ArrowDown") {
       dude.direction = "down";
+    }
+
+    if (old_direction != dude.direction && Math.random() * 100 < 65) {
+      if (cussin_sound_available && dude.state != "succeeded" && dude.state != "failed" && dude.state != "kicked_fall") {
+        cussin_sound_available = false;
+        var cussin_string = "#cussin_" + (Math.floor(Math.random() * 29) + 1).toString();
+        $(cussin_string).trigger("play");
+        $(cussin_string).bind("ended", function(){
+          cussin_sound_available = true;
+        });
+      }
     }
   }
 

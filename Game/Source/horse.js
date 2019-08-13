@@ -3,6 +3,8 @@ var horse_colors = ["Brown", "DarkBrown", "Yellow", "Black"];
 
 var horse_images = {};
 
+var kick_sound_available = true;
+
 for (var c = 0; c < horse_colors.length; c++) {
   var color = horse_colors[c];
   horse_images[color] = {};
@@ -97,7 +99,7 @@ class Horse {
     this.x_pos = x_pos;
     this.y_pos = y_pos;
 
-    this.old_waypoint = -1;
+    this.old_waypoint = waypoint;
     this.waypoint = waypoint;
 
     this.dude = dude;
@@ -153,6 +155,13 @@ class Horse {
         this.current_animation = "back_kick";
         this.current_frame = 1;
         this.dude.kickedFall();
+        if (kick_sound_available) {
+          kick_sound_available = false;
+          $("#kick").trigger("play");
+          $("#kick").bind("ended", function(){
+            kick_sound_available = true;
+          });
+        }
         return;
       }
     }
@@ -173,7 +182,7 @@ class Horse {
       this.can_flip = true;
     }
 
-    var w = waypoints[this.waypoint];
+    var w = map.waypoints[this.waypoint];
     var x_diff = Math.abs(this.x_pos - w.x);
     var y_diff = Math.abs(this.y_pos - w.y);
 
@@ -181,7 +190,7 @@ class Horse {
     if (distance(this.x_pos, this.y_pos, w.x, w.y) < 5) {
       this.waypoints_seen += 1;
 
-      if (this.waypoint === 35) {
+      if (map.failure_waypoints.includes(this.waypoint)) {
         this.dude.fail();
       }
 
@@ -191,8 +200,7 @@ class Horse {
 
       // If we've never escaped, and we can, let's escape!
       if (this.has_escaped === false && this.old_waypoint === 45) {
-        var escape_points = [22, 33];
-        this.waypoint = escape_points[Math.floor(Math.random() * 2)];
+        this.waypoint = map.escape_waypoints[Math.floor(Math.random() * map.escape_waypoints.length)];
         this.has_escaped = true;
       } else if (this.waypoint < 44 && this.running_home > 0) {
         // Look for the waypoint that lets you escape the dude
@@ -201,8 +209,8 @@ class Horse {
         var potential_waypoints = [];
         for (var i = 0; i < w.links.length; i++) {
           var point = w.links[i];
-          var v_x = waypoints[point].x - waypoints[this.old_waypoint].x;
-          var v_y = waypoints[point].y - waypoints[this.old_waypoint].y;
+          var v_x = map.waypoints[point].x - map.waypoints[this.old_waypoint].x;
+          var v_y = map.waypoints[point].y - map.waypoints[this.old_waypoint].y;
           var n_x = 10 * v_x / (v_x * v_x + v_y * v_y);
           var n_y = 10 * v_y / (v_x * v_x + v_y * v_y);
           if (distance(
@@ -218,20 +226,15 @@ class Horse {
           this.waypoint = potential_waypoints[Math.floor(Math.random() * potential_waypoints.length)];
         } else {
           this.waypoint = w.links[Math.floor(Math.random() * w.links.length)];
-          //console.log("crap");
-          //this.waypoint = 45;
         }
-        // console.log(w.links);
-        // console.log(potential_waypoints);
-        // console.log(this.waypoint);
 
         // If the dude's not actually nearby, run home
-        if (this.dude_nearby === false && this.waypoint < 44) {
+        if (this.dude_nearby === false && !map.success_waypoints.includes(this.waypoint)) {
           this.waypoint = w.home;
         }
 
         // If the home waypoint is available, take this, highest priority
-        if (w.home === 45) {
+        if (map.success_waypoints.includes(w.home)) {
           this.waypoint = w.home;
         }
       } else {
@@ -257,7 +260,7 @@ class Horse {
         this.y_pos + y_test_velocity,
         this.dude.x_pos,
         this.dude.y_pos) < distance(this.x_pos, this.y_pos, this.dude.x_pos, this.dude.y_pos)
-        && this.waypoint < 44) {
+        && !map.success_waypoints.includes(this.waypoint)) {
         this.temp = this.waypoint;
         this.waypoint = this.old_waypoint;
         this.old_waypoint = this.temp;
@@ -325,11 +328,12 @@ class Horse {
     }
     this.context.restore();
 
-    this.context.beginPath();
-    this.context.arc(
-      this.x_pos, this.y_pos - 10, 5,
-      0, 2 * Math.PI);
-    this.context.stroke();
+    // debug render location
+    // this.context.beginPath();
+    // this.context.arc(
+    //   this.x_pos, this.y_pos - 10, 5,
+    //   0, 2 * Math.PI);
+    // this.context.stroke();
   }
 }
 

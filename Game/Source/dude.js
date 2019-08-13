@@ -43,6 +43,14 @@ for (var i = 1; i <= 50; i++) {
 center_x["crap_surprise"] = 37;
 center_y["crap_surprise"] = 90;
 
+dude_images["celebration"] = [];
+for (var i = 1; i <= 7; i++) {
+  dude_images["celebration"][i] = new Image();
+  dude_images["celebration"][i].src = "Art/Dude/celebration_" + i + ".png";
+}
+center_x["celebration"] = 25;
+center_y["celebration"] = 110;
+
 dude_images["kicked_fall"] = [];
 for (var i = 1; i <= 22; i++) {
   dude_images["kicked_fall"][i] = new Image();
@@ -93,6 +101,15 @@ class Dude {
     }
   }
 
+  succeed() {
+    if (this.state != "succeeded") {
+      this.state = "succeeded";
+      this.current_frame = 1;
+      this.current_animation = "celebration";
+      $("#well_alright").trigger("play");
+    }
+  }
+
   stepInCrap() {
     if (this.state != "crap") {
       this.state = "crap";
@@ -112,7 +129,7 @@ class Dude {
   update() {
     this.current_frame += 1;
     if (this.current_frame >= dude_images[this.current_animation].length) {
-      if (this.state === "failed") {
+      if (this.state === "failed" || this.state === "succeeded") {
         this.current_frame -= 1;
       }
       else {
@@ -143,7 +160,7 @@ class Dude {
       }
     }
 
-    if (this.state === "failed") {
+    if (this.state === "failed" || this.state === "succeeded") {
       return;
     }
 
@@ -188,7 +205,7 @@ class Dude {
   }
 
   renderEffect() {
-    if (this.state === "failed" || this.effect_animation_portion < 0) {
+    if (this.state === "failed" || this.state === "succeeded" || this.state === "kicked_fall" || this.effect_animation_portion < 0) {
       return;
     }
     context.globalAlpha = 1.0 - this.effect_animation_portion;
@@ -220,11 +237,12 @@ class Dude {
     this.context.drawImage(dude_images[this.current_animation][this.current_frame], -center_x[this.current_animation], -center_y[this.current_animation]);
     this.context.restore();
 
-    this.context.beginPath();
-    this.context.arc(
-      this.x_pos, this.y_pos, 5,
-      0, 2 * Math.PI);
-    this.context.stroke();
+    // debug render location
+    // this.context.beginPath();
+    // this.context.arc(
+    //   this.x_pos, this.y_pos, 5,
+    //   0, 2 * Math.PI);
+    // this.context.stroke();
   }
 
   getZIndex() {
