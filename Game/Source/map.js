@@ -25,7 +25,7 @@ class Map {
       var index_y = Math.floor(pairs[i][1] / this.y_spacing);
 
       if (index_x >= 0 && index_x < this.tiles[0].length && index_y >= 0 && index_y < this.tiles.length) {
-        if (this.tiles[index_y][index_x] === "x") {
+        if (this.tiles[index_y][index_x] === "x" || this.tiles[index_y][index_x] === "y") {
           return true;
         }
       }
@@ -55,12 +55,12 @@ class Map_One extends Map {
       "x----------------------x------------------------x",
       "x----------------------x------------------------x",
       "x----------------------x------------------------x",
-      "x----------------------x-------------xxxx    xxxx",
-      "x----------------------x-------------x          x",
-      "-------------------------------------           x",
-      "-------------------------------------           x",
-      "-------------------------------------x          x",
-      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "x----------------------x-------------yyyy    yyyy",
+      "x----------------------x-------------y          y",
+      "-------------------------------------           y",
+      "-------------------------------------           y",
+      "-------------------------------------y          y",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyy",
     ];
 
     this.waypoints = {};
@@ -144,12 +144,12 @@ class Map_Two extends Map {
       "x------------xxxxx---xxxx----xxxx---x---x---x---x",
       "x---xxxxxx---x------------------x---x---x---x---x",
       "x-----x------x------------------x---x---x---x---x",
-      "x-----x------x---xxxx    xxxx---x---x---x---x---x",
-      "xxx---x---xxxx---x          x---x---x---x---x---x",
-      "x-----x----------x          x---x---x---x---x---x",
-      "x-----x----------x          x---x---x---x---x---x",
-      "x---xxx---xxxx---x          x---x---x---x---x---x",
-      "x------------x---xxxx    xxxx---x---x---x---x---x",
+      "x-----x------x---yyyy    yyyy---x---x---x---x---x",
+      "xxx---x---xxxx---y          y---x---x---x---x---x",
+      "x-----x----------y          y---x---x---x---x---x",
+      "x-----x----------y          y---x---x---x---x---x",
+      "x---xxx---xxxx---y          y---x---x---x---x---x",
+      "x------------x---yyyy    yyyy---x---x---x---x---x",
       "x------------x------------------x---x---x---x---x",
       "x---xx---x---x------------------x---x---x---x---x",
       "x---xx---x---xxxxxxxxxxxxxxxx---x---x---x---x---x",
@@ -249,12 +249,12 @@ class Map_Three extends Map {
       "x-----------------------------------------------x",
       "x--xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx--x",
       "x-----------------------------------------------x",
-      "x--xxxxxxxxxxxxxxxxxx    xxxxxxxxxxxxxxxxxxxxx--x",
-      "x----------------x          x-------------------x",
-      "x----------------x          x-------------------x",
-      "x----------------x          x-------------------x",
-      "x----------------x          x-------------------x",
-      "x--xxxxxxxxxxxxxxxxxx    xxxxxxxxxxxxxxxxxxxxx--x",
+      "x--xxxxxxxxxxxxxxyyyy    yyyyxxxxxxxxxxxxxxxxx--x",
+      "x----------------y          y-------------------x",
+      "x----------------y          y-------------------x",
+      "x----------------y          y-------------------x",
+      "x----------------y          y-------------------x",
+      "x--xxxxxxxxxxxxxxyyyy    yyyyxxxxxxxxxxxxxxxxx--x",
       "x-----------------------------------------------x",
       "x--xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx--x",
       "x-----------------------------------------------x",

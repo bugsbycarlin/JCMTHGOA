@@ -5,8 +5,6 @@ var mode = "title";
 
 var seconds_of_this_crap = 0;
 
-// var tries_left = 3;
-
 var pens_to_go = 3;
 
 var num_horses;
@@ -30,6 +28,18 @@ fence_images["corner"] = new Image();
 fence_images["corner"].src = "Art/Fence/corner_fence.png";
 fence_images["extension"] = new Image();
 fence_images["extension"].src = "Art/Fence/extension_fence.png";
+
+var dark_fence_images = [];
+dark_fence_images["horizontal"] = new Image();
+dark_fence_images["horizontal"].src = "Art/DarkFence/horizontal_fence.png";
+dark_fence_images["vertical"] = new Image();
+dark_fence_images["vertical"].src = "Art/DarkFence/vertical_fence.png";
+dark_fence_images["solitary"] = new Image();
+dark_fence_images["solitary"].src = "Art/DarkFence/solitary_fence.png";
+dark_fence_images["corner"] = new Image();
+dark_fence_images["corner"].src = "Art/DarkFence/corner_fence.png";
+dark_fence_images["extension"] = new Image();
+dark_fence_images["extension"].src = "Art/DarkFence/extension_fence.png";
 
 title_horse = [];
 for (var i = 1; i <= 21; i++) {
@@ -66,8 +76,24 @@ pens_to_go_image.src = "Art/Display/pens_to_go.png";
 var seconds_of_this_crap_image = new Image();
 seconds_of_this_crap_image.src = "Art/Display/seconds_of_this_crap.png";
 
-// var tries_left_image = new Image();
-// tries_left_image.src = "Art/Display/tries_left.png";
+var airhorn_image = new Image();
+airhorn_image.src = "Art/Display/airhorn.png";
+
+var musk_image = new Image();
+musk_image.src = "Art/Display/musk.png";
+
+var airhorn_legend_image = new Image();
+airhorn_legend_image.src = "Art/Display/airhorn_legend.png";
+
+var musk_legend_image = new Image();
+musk_legend_image.src = "Art/Display/musk_legend.png";
+
+var item_timer;
+var item_x;
+var item_y;
+var item_type;
+var item_status;
+var item_types = ["airhorn", "musk"];
 
 var number_text = [];
 for (var i = 0; i < 10; i++) {
@@ -86,15 +112,10 @@ function initialize()
   
   canvas = document.getElementById('canvas');
 
-  //document.addEventListener("mouseup", click_event, false);
-  //document.addEventListener("touchstart", touch_event, false);
   document.addEventListener("keydown", handleKeys, false);
   
   canvas.width = 1600;
   canvas.height = 900;
-  //var pos = findPos(canvas);
-  //canvas.left = pos[0];
-  //canvas.top = pos[1];
 
   canvas.style.visibility = 'visible';
   var loadingdiv = document.getElementById('loadingdiv');
@@ -129,6 +150,9 @@ function startLevelOne() {
   }
 
   poops = [];
+
+  item_status = "none";
+  item_timer = 5 + Math.random() * 15;
 }
 
 function startLevelTwo() {
@@ -150,6 +174,9 @@ function startLevelTwo() {
   }
 
   poops = [];
+
+  item_status = "none";
+  item_timer = 5 + Math.random() * 15;
 }
 
 function startLevelThree() {
@@ -171,6 +198,9 @@ function startLevelThree() {
   }
 
   poops = [];
+
+  item_status = "none";
+  item_timer = 5 + Math.random() * 15;
 }
 
 function cueTheMusic() {
@@ -193,15 +223,8 @@ function cueTheMusic() {
     $("#song_1").trigger("play");
   });
 
-  // Start with one of the first three songs.
   var first_song_string = "#song_" + (Math.floor(Math.random() * 4) + 1).toString();
   $(first_song_string).trigger("play");
-
-  // $("#cussin").prop("volume",0.8);
-  // $("#cussin").trigger("play");
-  // $("#cussin").bind("ended", function(){
-  //   $("#cussin").trigger("play");
-  // });
 
   next_cuss = cussin_frequency + Math.floor(Math.random() * cussin_frequency);
 }
@@ -210,10 +233,6 @@ function update() {
   if (mode === "title") {
     //pass
   } else if (mode === "game") {
-    if (dude.state != "failed" && dude.state != "succeeded") {
-      seconds_of_this_crap += 36.0/1000.0;
-    }
-
     updateGame();
   }
 
@@ -225,9 +244,28 @@ function update() {
 }
 
 function updateGame() {
-
   if (dude.state === "succeeded") {
     return;
+  }
+
+  if (dude.state != "failed") {
+    seconds_of_this_crap += 36.0/1000.0;
+
+    if (item_timer > 0) {
+      item_timer -= 36.0/1000.0;
+
+      if (item_timer <= 0) {
+        item_timer = -1;
+        item_type = item_types[Math.floor(Math.random() * item_types.length)];
+        var n = Math.floor(Math.random() * Object.keys(map.waypoints).length);
+        item_x = map.waypoints[n].x;
+        item_y = map.waypoints[n].y;
+        item_status = "ground";
+        if (!map.failure_waypoints.includes(n)) {
+          $("#item").trigger("play");
+        }
+      }
+    }
   }
 
   var no_escapes_yet = true;
@@ -246,6 +284,12 @@ function updateGame() {
     }
   }
 
+  if (Math.random() * 1000 < 10) {
+    var horse_sound_string = "#horse_" + (Math.floor(Math.random() * 14) + 1).toString();
+    $(horse_sound_string).prop("volume", 0.4);
+    $(horse_sound_string).trigger("play");
+  }
+
   for (var i = 0; i < poops.length; i++) {
     poops[i].update();
   }
@@ -254,9 +298,11 @@ function updateGame() {
     if (map.map_number == 1) {
       startLevelTwo();
       skip_render = true;
+      $("#well_alright").trigger("play");
     } else if (map.map_number == 2) {
       startLevelThree();
       skip_render = true;
+      $("#well_alright").trigger("play");
     } else {
       dude.succeed();
     }
@@ -282,6 +328,11 @@ function updateDude() {
         });
       }
     }
+  }
+
+  if(item_status === "ground" && distance(dude.x_pos, dude.y_pos, item_x, item_y) < 32) {
+    item_status = "dude";
+    $("#item").trigger("play");
   }
 }
 
@@ -342,8 +393,6 @@ function drawNumber(number, x, y) {
 }
 
 function renderTitle(context) {
-  //context.drawImage(title_image, 0, 0);
-
   context.fillStyle = "#FFFFFF";
   context.fillRect(0,0,canvas.width,canvas.height);
 
@@ -352,7 +401,6 @@ function renderTitle(context) {
   context.drawImage(title_horse[Math.floor(title_horse_1_frame)], 140, 100);
   context.drawImage(title_horse[Math.floor(title_horse_2_frame)], 1210, 100);
 
-  //context.drawImage(title_image, 0, 0);
   context.drawImage(title_image, 0, -180);
 
   context.drawImage(credits_image, -10, 0);
@@ -375,6 +423,12 @@ function renderGame(context) {
 
   dude.renderEffect();
 
+  for (var i = 0; i < num_horses; i++) {
+    if (map.failure_waypoints.includes(horses[i].waypoint)) {
+      horses[i].renderEffect();
+    }
+  }
+
   if (dude.state === "kicked_fall" && dude.current_frame < 10) {
     this.context.save();
     this.context.translate(
@@ -394,24 +448,21 @@ function renderGame(context) {
       draw_x = map.x + map.x_spacing * w;
       draw_y = map.y + map.y_spacing * h;
 
-      if (tiles[h][w] === "x") {
-        //if(h === 0 || h == =tiles.length - 1) {
-        //context.drawImage(fence_images["extension"], draw_x, draw_y);
-        //draw_y -= 5;
-        //}
+      if (tiles[h][w] === "x" || tiles[h][w] === "y") {
+        var source_tiles = fence_images;
+        if (tiles[h][w] === "y") source_tiles = dark_fence_images;
 
-        if (w < tiles[0].length - 1 && h < tiles.length - 1 && tiles[h][w+1] === "x" && map.tiles[h+1][w] === "x") {
-          context.drawImage(fence_images["corner"], draw_x, draw_y);
-        } else if (w < tiles[0].length - 1 && tiles[h][w+1] === "x") {
-          context.drawImage(fence_images["horizontal"], draw_x, draw_y);
-        } else if (h < tiles.length - 1 && tiles[h+1][w] === "x") {
-          context.drawImage(fence_images["vertical"], draw_x, draw_y);
+        if (w < tiles[0].length - 1 && h < tiles.length - 1 && 
+          (tiles[h][w+1] === "x" || tiles[h][w+1] === "y") &&
+          (map.tiles[h+1][w] === "x" || map.tiles[h+1][w] === "y")) {
+          context.drawImage(source_tiles["corner"], draw_x, draw_y);
+        } else if (w < tiles[0].length - 1 && (tiles[h][w+1] === "x" || tiles[h][w+1] === "y")) {
+          context.drawImage(source_tiles["horizontal"], draw_x, draw_y);
+        } else if (h < tiles.length - 1 && (tiles[h+1][w] === "x" || tiles[h+1][w] === "y")) {
+          context.drawImage(source_tiles["vertical"], draw_x, draw_y);
         } else {
-          context.drawImage(fence_images["solitary"], draw_x, draw_y);
+          context.drawImage(source_tiles["solitary"], draw_x, draw_y);
         }
-
-        //if (h === 0 || h === tiles.length - 1) draw_y += 40;
-        //draw_y += 5;
       }
 
       for (var i = 0; i < num_horses; i++) {
@@ -422,6 +473,14 @@ function renderGame(context) {
 
       if (draw_y + 25 <= dude.y_pos && draw_y + 25 + map.y_spacing > dude.y_pos) {
         dude.render();
+      }
+
+      if (item_status === "ground" && draw_y + 25 <= item_y && draw_y + 25 + map.y_spacing > item_y) {
+        var image = airhorn_image;
+        if (item_type === "musk") {
+          image = musk_image;
+        }
+        context.drawImage(image, item_x - 32, item_y - 32);
       }
     }
   }
@@ -434,19 +493,17 @@ function renderGame(context) {
     context.drawImage(game_win_image, 0, 0);
   }
 
-  // var display_seconds = seconds_of_this_crap;
-  // var digits = Math.floor(Math.log(seconds_of_this_crap) / Math.log(10));
-  // for (var i = digits; i >= 0; i--) {
-  //   var current_digit = Math.floor(display_seconds / (Math.pow(10, i)));
-  //   display_seconds -= Math.pow(10, i) * current_digit;
-  //   context.drawImage(number_text[current_digit], 10 + 26 * (digits - i), 8); 
-  // }
+  if (item_status === "dude") {
+    var image = airhorn_legend_image;
+    if (item_type === "musk") {
+      image = musk_legend_image;
+    }
+    context.drawImage(image, 200, 840);
+  }
+
   var digits = drawNumber(Math.floor(seconds_of_this_crap), 10, 8);
 
   context.drawImage(seconds_of_this_crap_image, 26 * digits + 50, 8);
-
-  // drawNumber(tries_left, 710, 8);
-  // context.drawImage(tries_left_image, 750, 8);
 
   if(pens_to_go > 1) {
     drawNumber(pens_to_go, 1305, 8);
@@ -459,16 +516,6 @@ function renderGame(context) {
     this.context.restore();
   }
 }
-
-// function renderHorse() {
-//   context.save();
-//   context.translate(x_pos, y_pos);
-//   if (velocity < 0) {
-//     context.scale(-1, 1);
-//   }
-//   context.drawImage(trotImages[current_frame], -center_x, -center_y);
-//   context.restore();
-// }
 
 function distance(x1, y1, x2, y2) {
   var x_diff = Math.abs(x1 - x2);
@@ -523,14 +570,39 @@ function handleGameKeys(ev) {
         });
       }
     }
+
+    if (item_status === "dude") {
+      if (item_type === "airhorn" && ev.key === "a") {
+        $("#airhorn").trigger("play");
+        item_status = "none";
+
+        for (var i = 0; i < num_horses; i++) {
+          horses[i].startled = 40;
+          horses[i].temp = horses[i].waypoint;
+          horses[i].waypoint = horses[i].old_waypoint;
+          horses[i].old_waypoint = horses[i].temp;
+        }
+
+      } else if (item_type === "musk" && ev.key === "m") {
+        $("#spray").trigger("play");
+        item_status = "none";
+
+        for (var i = 0; i < num_horses; i++) {
+          horses[i].musky = 216;
+          horses[i].temp = horses[i].waypoint;
+          horses[i].waypoint = horses[i].old_waypoint;
+          horses[i].old_waypoint = horses[i].temp;
+        }
+      }
+    }
   }
 
-  // if (ev.key === "f") {
-  //   dude.fail()
-  // }
-  // if (ev.key === "s") {
-  //   dude.succeed()
-  // }
+  if (ev.key === "f") {
+    dude.fail()
+  }
+  if (ev.key === "s") {
+    dude.succeed()
+  }
 
   if (dude.state === "failed" && ev.key === "Enter") {
     startLevelOne();
@@ -544,42 +616,4 @@ function handleTitleKeys(ev) {
   }
 }
 
-// function findPos(element)
-// {
-//   var curLeft = 0;
-//   var curTop = 0;
-//   if(element.offsetParent)
-//   {
-//     do{
-//       curLeft += element.offsetLeft;
-//       curTop += element.offsetTop;
-//     } while(element = element.offsetParent);
-//   }
-  
-//   return [curLeft, curTop];
-// }
-
-
-// function click_event(ev)
-// {
-//   ev.preventDefault();
-
-//   var x = ev.pageX - canvas.left;
-//   var y = ev.pageY - canvas.top;
-
-//   do_click(x,y);
-// }
-
-// function touch_event(ev)
-// {
-//   console.log(ev);
-//   var touch = ev.touches[0];
-//   var x = touch.pageX - canvas.left;
-//   var y = touch.pageY - canvas.top;
-//   do_click(x,y);
-// }
-
-// function do_click(x,y)
-// {
-// }
 

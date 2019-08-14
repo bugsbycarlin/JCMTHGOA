@@ -105,6 +105,7 @@ class Dude {
       this.state = "failed";
       this.current_frame = 1;
       this.current_animation = "sad";
+      $("#i_give_up").trigger("play");
     }
   }
 

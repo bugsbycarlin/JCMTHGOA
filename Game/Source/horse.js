@@ -40,6 +40,12 @@ frown_image.src = "Art/Display/frown.png";
 var home_image = new Image();
 home_image.src = "Art/Display/home.png";
 
+var heart_image = new Image();
+heart_image.src = "Art/Display/heart.png";
+
+var exclamation_mark_image = new Image();
+exclamation_mark_image.src = "Art/Display/exclamation_mark.png";
+
 var poop_images = [];
 for (var i = 1; i <= 3; i++) {
   poop_images[i] = new Image();
@@ -54,7 +60,7 @@ var panic_time = 108;
 
 var kick_outer_range = 80;
 var kick_inner_range = 30;
-var kick_vertical_tolerance = 15; 
+var kick_vertical_tolerance = 15;
 
 class Poop {
   constructor(x, y, poop_scattering_adjustment, style) {
@@ -110,10 +116,14 @@ class Horse {
     this.dude_nearby = false;
     this.running_home = 0;
     this.can_flip = true;
+    this.startled = 0;
+    this.musky = 0;
 
     this.color = horse_colors[Math.floor(Math.random() * horse_colors.length)];
 
     this.current_animation = "side_trot";
+
+    this.effect_animation_portion = 0;
 
     this.waypoints_seen = 0;
 
@@ -131,8 +141,21 @@ class Horse {
       }
     }
 
+    this.effect_animation_portion += 0.04;
+    if (this.effect_animation_portion > 1) {
+      this.effect_animation_portion = -0.25;
+    }
+
     if (this.current_animation === "back_kick") {
       return;
+    }
+
+    if (this.startled > 0) {
+      this.startled -= 1;
+    }
+
+    if (this.musky > 0) {
+      this.musky -= 1;
     }
 
     if (this.dude.state === "running") {
@@ -205,6 +228,33 @@ class Horse {
       if (this.has_escaped === false && this.old_waypoint === map.central_waypoint) {
         this.waypoint = map.escape_waypoints[Math.floor(Math.random() * map.escape_waypoints.length)];
         this.has_escaped = true;
+      } else if (this.musky > 0) {
+        if (map.success_waypoints.includes(w.home)) {
+          this.waypoint = w.home;
+        } else {
+          // seek the dude
+          var potential_waypoints = [];
+          for (var i = 0; i < w.links.length; i++) {
+            var point = w.links[i];
+            var v_x = map.waypoints[point].x - map.waypoints[this.old_waypoint].x;
+            var v_y = map.waypoints[point].y - map.waypoints[this.old_waypoint].y;
+            var n_x = 10 * v_x / (v_x * v_x + v_y * v_y);
+            var n_y = 10 * v_y / (v_x * v_x + v_y * v_y);
+            if (distance(
+              this.x_pos + n_x, 
+              this.y_pos + n_y,
+              this.dude.x_pos,
+              this.dude.y_pos) < distance(this.x_pos, this.y_pos, this.dude.x_pos, this.dude.y_pos)) {
+              potential_waypoints.push(point);
+            }
+          }
+          
+          if (potential_waypoints.length > 0) {
+            this.waypoint = potential_waypoints[Math.floor(Math.random() * potential_waypoints.length)];
+          } else {
+            this.waypoint = w.links[Math.floor(Math.random() * w.links.length)];
+          }
+        }
       } else if (!map.success_waypoints.includes(this.waypoint) && this.running_home > 0) {
         // Look for the waypoint that lets you escape the dude
 
@@ -301,7 +351,7 @@ class Horse {
   }
 
   maybePoop(poops) {
-    if (horse_poop_rate * Math.random() < 5) {
+    if (horse_poop_rate * Math.random() < 5 || (this.startled > 0 && 100 * Math.random() < 10)) {
       // make a poop!
       if (this.current_animation === "side_trot") {
         var butt_adjustment = -20;
@@ -312,6 +362,26 @@ class Horse {
         poops.push(new Poop(this.x_pos + butt_adjustment, this.y_pos + poop_scattering_adjustment, poop_scattering_adjustment, Math.floor((Math.random() * 3) + 1)));
       }
     }
+  }
+
+  renderEffect() {
+    if (this.effect_animation_portion < 0) {
+      return;
+    }
+
+    context.globalAlpha = 1.0 - this.effect_animation_portion;
+    this.context.beginPath();
+    this.context.lineWidth = "3";
+    this.context.strokeStyle = "red";
+    //this.context.arc(100, 75, 50, 0, 2 * Math.PI);
+    this.context.ellipse(
+      this.x_pos, this.y_pos,
+      200 * this.effect_animation_portion, 100 * this.effect_animation_portion,
+      0, 0, 2 * Math.PI);
+    this.context.stroke();
+    context.globalAlpha = 1.0;
+    this.context.strokeStyle = "black";
+    //void ctx.ellipse(x, y, radiusX, radiusY, rotation, startAngle, endAngle [, anticlockwise]);
   }
 
   render() {
@@ -327,7 +397,11 @@ class Horse {
       if (this.current_animation === "front_trot") emotion_bubble_adjustment = 0;
       if (this.current_animation === "rear_trot") emotion_bubble_adjustment = 9;
       if (this.current_animation === "side_trot") emotion_bubble_adjustment = 92;
-      if (this.running_home > 0 && !this.dude_nearby) {
+      if (this.startled > 0) {
+        this.context.drawImage(exclamation_mark_image, -this.center_x + emotion_bubble_adjustment, -this.center_y - 35)
+      } else if (this.musky > 0) {
+        this.context.drawImage(heart_image, -this.center_x + emotion_bubble_adjustment, -this.center_y - 35)
+      } else if (this.running_home > 0 && !this.dude_nearby) {
         this.context.drawImage(home_image, -this.center_x + emotion_bubble_adjustment, -this.center_y - 35)
       } else if (this.dude_nearby) {
         this.context.drawImage(frown_image, -this.center_x + emotion_bubble_adjustment, -this.center_y - 35)
