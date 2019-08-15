@@ -67,6 +67,12 @@ credits_image.src = "Art/Display/credits.png";
 var martha_image = new Image();
 martha_image.src = "Art/Display/martha.png";
 
+var cowboy_1_image = new Image();
+cowboy_1_image.src = "Art/Display/cowboy_1.png";
+
+var cowboy_2_image = new Image();
+cowboy_2_image.src = "Art/Display/cowboy_2.png";
+
 var last_pen_image = new Image();
 last_pen_image.src = "Art/Display/last_pen.png";
 
@@ -87,6 +93,8 @@ airhorn_legend_image.src = "Art/Display/airhorn_legend.png";
 
 var musk_legend_image = new Image();
 musk_legend_image.src = "Art/Display/musk_legend.png";
+
+var celebration_time;
 
 var item_timer;
 var item_x;
@@ -153,6 +161,8 @@ function startLevelOne() {
 
   item_status = "none";
   item_timer = 5 + Math.random() * 15;
+
+  celebration_time = 0;
 }
 
 function startLevelTwo() {
@@ -177,6 +187,8 @@ function startLevelTwo() {
 
   item_status = "none";
   item_timer = 5 + Math.random() * 15;
+
+  celebration_time = 0;
 }
 
 function startLevelThree() {
@@ -201,6 +213,8 @@ function startLevelThree() {
 
   item_status = "none";
   item_timer = 5 + Math.random() * 15;
+
+  celebration_time = 0;
 }
 
 function cueTheMusic() {
@@ -244,11 +258,7 @@ function update() {
 }
 
 function updateGame() {
-  if (dude.state === "succeeded") {
-    return;
-  }
-
-  if (dude.state != "failed") {
+  if (dude.state != "failed" && dude.state != "succeeded") {
     seconds_of_this_crap += 36.0/1000.0;
 
     if (item_timer > 0) {
@@ -294,17 +304,36 @@ function updateGame() {
     poops[i].update();
   }
 
-  if (!no_escapes_yet && !wayward_horse) {
+  if (!no_escapes_yet && !wayward_horse && celebration_time == 0) {
     if (map.map_number == 1) {
-      startLevelTwo();
-      skip_render = true;
-      $("#well_alright").trigger("play");
+      dude.succeed();
+      celebration_time = 108;
+      //$("#well_alright").trigger("play");
     } else if (map.map_number == 2) {
-      startLevelThree();
-      skip_render = true;
-      $("#well_alright").trigger("play");
+      //$("#well_alright").trigger("play");
+      dude.succeed();
+      celebration_time = 108;
     } else {
       dude.succeed();
+      celebration_time = 108;
+    }
+  }
+
+  if (celebration_time > 0) {
+    if (celebration_time === 90) {
+      $("#well_alright").trigger("play");
+    }
+    celebration_time -= 1;
+    if (celebration_time <= 0) {
+      if (map.map_number == 1) {
+        startLevelTwo();
+        skip_render = true;
+      } else if (map.map_number == 2) {
+        startLevelThree();
+        skip_render = true;
+      } else {
+        celebration_time = - 50;
+      }
     }
   }
 }
@@ -401,9 +430,9 @@ function renderTitle(context) {
   context.drawImage(title_horse[Math.floor(title_horse_1_frame)], 140, 100);
   context.drawImage(title_horse[Math.floor(title_horse_2_frame)], 1210, 100);
 
-  context.drawImage(title_image, 0, -180);
+  context.drawImage(title_image, 0, -200);
 
-  context.drawImage(credits_image, -10, 0);
+  context.drawImage(credits_image, -10, -30);
 
   title_horse_1_frame += 0.5;
   if (title_horse_1_frame >= title_horse.length) {
@@ -440,7 +469,19 @@ function renderGame(context) {
     poops[i].render();
   }
 
+  if (dude.y_pos < map.y + 25) {
+    dude.render();
+  }
+
   context.drawImage(martha_image, 570, 30);
+
+  context.drawImage(cowboy_1_image, 930, 24);
+  context.drawImage(cowboy_2_image, 970, 28);
+
+  if (horses[0].musky > 0) {
+    context.drawImage(heart_image, 930, -5);
+    context.drawImage(heart_image, 970, -5);
+  }
 
   var tiles = map.tiles;
   for (var h = 0; h < tiles.length; h++) {
@@ -485,15 +526,19 @@ function renderGame(context) {
     }
   }
 
+  if (dude.y_pos > map.y + map.y_spacing * tiles.length + 25) {
+    dude.render();
+  }
+
   if (dude.state === "failed") {
     context.drawImage(game_over_image, -35, 155);
   }
 
-  if (dude.state === "succeeded") {
+  if (dude.state === "succeeded" && map.map_number === 3) {
     context.drawImage(game_win_image, 0, 0);
   }
 
-  if (item_status === "dude") {
+  if (item_status === "dude" && dude.state != "succeeded" && dude.state != "failed") {
     var image = airhorn_legend_image;
     if (item_type === "musk") {
       image = musk_legend_image;
@@ -597,12 +642,12 @@ function handleGameKeys(ev) {
     }
   }
 
-  if (ev.key === "f") {
-    dude.fail()
-  }
-  if (ev.key === "s") {
-    dude.succeed()
-  }
+  // if (ev.key === "f") {
+  //   dude.fail()
+  // }
+  // if (ev.key === "s") {
+  //   dude.succeed()
+  // }
 
   if (dude.state === "failed" && ev.key === "Enter") {
     startLevelOne();

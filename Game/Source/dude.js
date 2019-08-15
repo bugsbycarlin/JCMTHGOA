@@ -44,9 +44,11 @@ center_x["crap_surprise"] = 37;
 center_y["crap_surprise"] = 90;
 
 dude_images["celebration"] = [];
-for (var i = 1; i <= 7; i++) {
-  dude_images["celebration"][i] = new Image();
-  dude_images["celebration"][i].src = "Art/Dude/celebration_" + i + ".png";
+for (var i = 1; i <= 17; i++) {
+  dude_images["celebration"][2*i-1] = new Image();
+  dude_images["celebration"][2*i-1].src = "Art/Dude/celebration_" + i + ".png";
+  dude_images["celebration"][2*i] = new Image();
+  dude_images["celebration"][2*i].src = "Art/Dude/celebration_" + i + ".png";
 }
 center_x["celebration"] = 25;
 center_y["celebration"] = 110;
@@ -114,7 +116,7 @@ class Dude {
       this.state = "succeeded";
       this.current_frame = 1;
       this.current_animation = "celebration";
-      $("#well_alright").trigger("play");
+      // $("#well_alright").trigger("play");
     }
   }
 
@@ -148,7 +150,7 @@ class Dude {
   update() {
     this.current_frame += 1;
     if (this.current_frame >= dude_images[this.current_animation].length) {
-      if (this.state === "failed" || this.state === "succeeded") {
+      if (this.state === "failed") {
         this.current_frame -= 1;
       }
       else {
